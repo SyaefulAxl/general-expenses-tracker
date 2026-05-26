@@ -4,29 +4,24 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { User } from '../models';
 
-export interface LoginRequest { email: string; password: string; }
-export interface RegisterRequest { name: string; email: string; password: string; }
+export interface LoginRequest { username: string; password: string; }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/auth`;
-  private tokenKey = 'thai_expenses_token';
-  private userKey = 'thai_expenses_user';
+  private tokenKey = 'gen_expenses_token';
+  private userKey = 'gen_expenses_user';
 
-  login(email: string, password: string): Observable<User> {
-    return this.http.post<User>(`${this.base}/login`, { email, password } as LoginRequest).pipe(
-      tap((res: User & { token?: string }) => {
+  login(username: string, password: string): Observable<User & { token?: string }> {
+    return this.http.post<User & { token?: string }>(`${this.base}/login`, { username, password } as LoginRequest).pipe(
+      tap((res) => {
         if (res.token) {
           localStorage.setItem(this.tokenKey, res.token);
           localStorage.setItem(this.userKey, JSON.stringify(res));
         }
       })
     );
-  }
-
-  register(name: string, email: string, password: string): Observable<User> {
-    return this.http.post<User>(`${this.base}/register`, { name, email, password } as RegisterRequest);
   }
 
   logout(): void {

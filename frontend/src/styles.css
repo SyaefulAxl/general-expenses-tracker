@@ -38,12 +38,12 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
 
-  /* Sidebar (always dark) */
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #ffffff;
-  --sidebar-active-bg: #2563eb;
-  --sidebar-hover-bg: #334155;
+  /* Sidebar (light) */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #475569;
+  --sidebar-text-active: #1e293b;
+  --sidebar-active-bg: #eff6ff;
+  --sidebar-hover-bg: #f1f5f9;
   --sidebar-width: 240px;
 
   /* Topbar */

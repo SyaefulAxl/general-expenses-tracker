@@ -6,6 +6,7 @@ export type LoanType = 'I_OWE' | 'OWED_TO_ME';
 export interface User {
   id: number;
   name: string;
+  username: string;
   email: string;
   role: UserRole;
   isActive: boolean;

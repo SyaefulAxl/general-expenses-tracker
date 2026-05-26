@@ -11,6 +11,7 @@ import { User, UserRole } from '@core/models';
 interface CurrentUser {
   id: number;
   name: string;
+  username: string;
   role: UserRole;
 }
 
@@ -321,7 +322,7 @@ export class AdminComponent {
     } catch {
       // ignore parse errors
     }
-    return { id: 1, name: 'Syaeful', role: 'ADMIN' };
+    return { id: 1, name: 'Syaeful', username: 'syaeful', role: 'ADMIN' };
   }
 
   readonly isAdmin = computed(() => this._currentUser().role === 'ADMIN');

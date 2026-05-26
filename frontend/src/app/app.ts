@@ -35,9 +35,7 @@ import { filter } from 'rxjs/operators';
               <h1 class="topbar-title">{{ getPageTitle() }}</h1>
             </div>
             <div class="topbar-right">
-              <button class="topbar-btn" (click)="toggleTheme()" [title]="isDarkMode() ? 'Light mode' : 'Dark mode'">
-                <i [class]="isDarkMode() ? 'pi pi-sun' : 'pi pi-moon'"></i>
-              </button>
+              <!-- Light-only mode — no theme toggle -->
             </div>
           </header>
           <main class="page-content">
@@ -146,7 +144,7 @@ export class App implements OnInit {
   private authService = inject(AuthService);
 
   currentPage = signal('dashboard');
-  isDarkMode = signal(false);
+  isDarkMode = signal(false); // Light-only mode — no dark theme toggle
   sidebarOpen = signal(false);
   isCheckingAuth = signal(true);
   showShell = signal(false);
@@ -208,10 +206,5 @@ export class App implements OnInit {
 
   getPageTitle(): string {
     return this.pageTitles[this.currentPage()] || 'Dashboard';
-  }
-
-  toggleTheme() {
-    this.isDarkMode.update(v => !v);
-    localStorage.setItem('theme', this.isDarkMode() ? 'dark' : 'light');
   }
 }

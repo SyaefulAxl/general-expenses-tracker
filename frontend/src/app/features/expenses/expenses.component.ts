@@ -630,7 +630,7 @@ export class ExpensesComponent implements OnInit {
   readonly STATUS_OPTIONS = STATUS_OPTIONS;
 
   // ── Current user ────────────────────────────────────────────────────────────
-  currentUser: User = { id: 1, name: 'Syaeful', email: '', role: 'ADMIN', isActive: true, isSystem: false };
+  currentUser: User = { id: 1, name: 'Syaeful', username: 'syaeful', email: '', role: 'ADMIN', isActive: true, isSystem: false };
 
   // ── Filter signals ──────────────────────────────────────────────────────────
   filterStatus = signal<string>('ALL');

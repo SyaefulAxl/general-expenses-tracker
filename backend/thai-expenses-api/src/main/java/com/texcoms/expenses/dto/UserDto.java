@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public class UserDto {
     private Long id;
     private String name;
+    private String username;
     private String email;
     private UserRole role;
     private Boolean isActive;

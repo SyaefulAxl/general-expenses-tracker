@@ -469,7 +469,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     const stored = this.authService.getCurrentUser();
-    this.currentUser.set(stored || { id: 1, name: 'Syaeful', role: 'ADMIN', email: 'syaeful@texcoms.my.id', isActive: true, isSystem: false } as User);
+    this.currentUser.set(stored || { id: 1, name: 'Syaeful', username: 'syaeful', role: 'ADMIN', email: 'syaeful@texcoms.my.id', isActive: true, isSystem: false } as User);
     this.expenses.set(this.mockData.expenses());
     this.loans.set(this.mockData.loans());
     this.users.set(this.mockData.users());

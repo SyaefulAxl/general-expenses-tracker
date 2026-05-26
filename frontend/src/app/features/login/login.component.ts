@@ -15,17 +15,17 @@ import { AuthService } from '@core/services/auth.service';
       <div class="login-card">
         <!-- Brand -->
         <div class="login-brand">
-          <div class="brand-mark">฿</div>
+          <div class="brand-icon">💰</div>
           <div class="brand-text">
             <span class="brand-title">Expenses Tracker</span>
-            <span class="brand-subtitle">Thailand Trip</span>
+            <span class="brand-subtitle">General Expenses</span>
           </div>
         </div>
 
         <!-- Heading -->
         <div class="login-heading">
           <h1>Welcome back</h1>
-          <p>Sign in to access your dashboard</p>
+          <p>Sign in to your account</p>
         </div>
 
         <!-- Error Alert -->
@@ -39,16 +39,16 @@ import { AuthService } from '@core/services/auth.service';
         <!-- Login Form -->
         <form (ngSubmit)="onSubmit()" class="login-form">
           <div class="form-field">
-            <label for="email">Email</label>
+            <label for="username">Username</label>
             <input
               pInputText
-              id="email"
-              type="email"
-              [(ngModel)]="email"
-              name="email"
-              placeholder="Enter your email"
+              id="username"
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              placeholder="Enter your username"
               [disabled]="isLoading()"
-              autocomplete="email"
+              autocomplete="username"
               class="w-full">
           </div>
 
@@ -71,28 +71,32 @@ import { AuthService } from '@core/services/auth.service';
             type="submit"
             [label]="isLoading() ? 'Signing in...' : 'Sign In'"
             [icon]="isLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-sign-in'"
-            [disabled]="isLoading() || !email || !password"
+            [disabled]="isLoading() || !username || !password"
             class="p-button-primary w-full">
           </button>
         </form>
 
-        <!-- Demo Credentials -->
-        <div class="demo-box">
-          <div class="demo-title">Demo Credentials</div>
-          <div class="demo-row">
-            <span class="demo-label">Email:</span>
-            <code class="demo-value">syaeful&#64;texcoms.my.id</code>
+        <!-- Accounts Info -->
+        <div class="accounts-box">
+          <div class="accounts-title">Available Accounts</div>
+          <div class="account-row">
+            <span class="account-name">👤 Syaeful</span>
+            <code>syaeful</code>
           </div>
-          <div class="demo-row">
-            <span class="demo-label">Password:</span>
-            <code class="demo-value">Texcoms&#64;2025!</code>
+          <div class="account-row">
+            <span class="account-name">👤 Winda</span>
+            <code>winda</code>
+          </div>
+          <div class="account-row">
+            <span class="account-name">👤 Dina</span>
+            <code>dina</code>
           </div>
         </div>
       </div>
 
       <!-- Footer -->
       <div class="login-footer">
-        <span>Thailand Expenses Tracker &copy; 2026</span>
+        <span>General Expenses Tracker &copy; 2026</span>
       </div>
     </div>
   `,
@@ -103,17 +107,18 @@ import { AuthService } from '@core/services/auth.service';
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      background: #f1f5f9;
       padding: 20px;
     }
 
     .login-card {
-      background: var(--surface-card);
+      background: #ffffff;
       border-radius: 16px;
       padding: 40px;
       width: 100%;
       max-width: 420px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
     }
 
     .login-brand {
@@ -123,17 +128,15 @@ import { AuthService } from '@core/services/auth.service';
       margin-bottom: 32px;
     }
 
-    .brand-mark {
+    .brand-icon {
       width: 44px;
       height: 44px;
       border-radius: 10px;
-      background: var(--accent-primary);
-      color: white;
+      background: #3b82f6;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.4rem;
-      font-weight: 800;
       flex-shrink: 0;
     }
 
@@ -145,14 +148,14 @@ import { AuthService } from '@core/services/auth.service';
     .brand-title {
       font-weight: 700;
       font-size: 1.1rem;
-      color: var(--text-primary);
+      color: #1e293b;
       line-height: 1.2;
     }
 
     .brand-subtitle {
       font-weight: 400;
       font-size: 0.75rem;
-      color: var(--text-muted);
+      color: #64748b;
     }
 
     .login-heading {
@@ -162,13 +165,13 @@ import { AuthService } from '@core/services/auth.service';
     .login-heading h1 {
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--text-primary);
+      color: #1e293b;
       margin: 0 0 6px;
     }
 
     .login-heading p {
       font-size: 0.85rem;
-      color: var(--text-muted);
+      color: #64748b;
       margin: 0;
     }
 
@@ -177,12 +180,12 @@ import { AuthService } from '@core/services/auth.service';
       align-items: center;
       gap: 8px;
       padding: 12px 16px;
-      background: var(--accent-danger-subtle);
-      color: var(--accent-danger);
+      background: #fef2f2;
+      color: #dc2626;
       border-radius: 8px;
       font-size: 0.85rem;
       margin-bottom: 20px;
-      border: 1px solid var(--accent-danger);
+      border: 1px solid #fecaca;
     }
 
     .login-form {
@@ -200,55 +203,75 @@ import { AuthService } from '@core/services/auth.service';
     .form-field label {
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--text-secondary);
+      color: #475569;
+    }
+
+    .form-field input {
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #1e293b;
+      background: #ffffff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-field input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .form-field input::placeholder {
+      color: #94a3b8;
     }
 
     .w-full {
       width: 100%;
     }
 
-    .demo-box {
+    .accounts-box {
       margin-top: 24px;
       padding: 16px;
-      background: var(--bg-tertiary);
+      background: #f8fafc;
       border-radius: 8px;
-      border: 1px solid var(--border-color);
+      border: 1px solid #e2e8f0;
     }
 
-    .demo-title {
+    .accounts-title {
       font-size: 0.7rem;
       font-weight: 600;
-      color: var(--text-muted);
+      color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       margin-bottom: 10px;
     }
 
-    .demo-row {
+    .account-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 4px 0;
     }
 
-    .demo-label {
+    .account-name {
       font-size: 0.8rem;
-      color: var(--text-muted);
+      color: #475569;
     }
 
-    .demo-value {
-      font-size: 0.8rem;
-      color: var(--text-primary);
-      background: var(--surface-card);
+    code {
+      font-size: 0.75rem;
+      color: #3b82f6;
+      background: #eff6ff;
       padding: 2px 8px;
       border-radius: 4px;
-      border: 1px solid var(--border-color);
+      border: 1px solid #dbeafe;
     }
 
     .login-footer {
       margin-top: 24px;
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.4);
+      color: #94a3b8;
     }
 
     @media (max-width: 480px) {
@@ -262,24 +285,25 @@ export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  email = '';
+  username = '';
   password = '';
   isLoading = signal(false);
   errorMessage = signal('');
 
   onSubmit() {
-    if (!this.email || !this.password) return;
+    if (!this.username || !this.password) return;
 
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    this.authService.login(this.email, this.password).subscribe({
-      next: () => {
+    this.authService.login(this.username, this.password).subscribe({
+      next: (res) => {
+        this.authService.setCurrentUser(res);
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err?.error?.message || 'Invalid email or password. Please try again.');
+        this.errorMessage.set(err?.error?.message || 'Invalid username or password. Please try again.');
       }
     });
   }

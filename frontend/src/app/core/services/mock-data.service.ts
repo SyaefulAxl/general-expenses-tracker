@@ -3,9 +3,9 @@ import { Expense, Loan, User, ExpenseStatus, LoanStatus } from '@core/models';
 
 // ── Seed data matching prototype ──────────────────────────────────
 const SEED_USERS: User[] = [
-  { id: 1, name: 'Syaeful', email: 'syaeful@texcoms.my.id', role: 'ADMIN', isActive: true, isSystem: false },
-  { id: 2, name: 'Winda', email: 'winda@texcoms.my.id', role: 'MEMBER', isActive: true, isSystem: false },
-  { id: 3, name: 'Dina', email: 'dina@texcoms.my.id', role: 'MEMBER', isActive: true, isSystem: false },
+  { id: 1, name: 'Syaeful', username: 'syaeful', email: 'syaeful@texcoms.my.id', role: 'ADMIN', isActive: true, isSystem: false },
+  { id: 2, name: 'Winda', username: 'winda', email: 'winda@texcoms.my.id', role: 'MEMBER', isActive: true, isSystem: false },
+  { id: 3, name: 'Dina', username: 'dina', email: 'dina@texcoms.my.id', role: 'MEMBER', isActive: true, isSystem: false },
 ];
 
 const SEED_EXPENSES: Expense[] = [

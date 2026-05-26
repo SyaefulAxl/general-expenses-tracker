@@ -23,7 +23,7 @@ interface NavItem {
         <div class="sidebar-brand-mark">฿</div>
         <div class="sidebar-brand-text">
           <span class="sidebar-brand-title">Expenses</span>
-          <span class="sidebar-brand-subtitle">Thailand</span>
+          <span class="sidebar-brand-subtitle">General</span>
         </div>
         <button class="sidebar-close" (click)="close()" aria-label="Close menu">
           <i class="pi pi-times"></i>
@@ -109,13 +109,13 @@ interface NavItem {
     .sidebar-brand-title {
       font-weight: 700;
       font-size: 1rem;
-      color: #fff;
+      color: #1e293b;
       line-height: 1.2;
     }
     .sidebar-brand-subtitle {
       font-weight: 400;
       font-size: 0.75rem;
-      color: var(--sidebar-text);
+      color: #64748b;
     }
     .sidebar-close {
       display: none;
@@ -165,11 +165,11 @@ interface NavItem {
     }
     .sidebar-nav-item:hover {
       background: var(--sidebar-hover-bg);
-      color: #fff;
+      color: #1e293b;
     }
     .sidebar-nav-item.active {
       background: var(--sidebar-active-bg);
-      color: #fff;
+      color: #2563eb;
     }
     .nav-icon {
       font-size: 1rem;
@@ -192,7 +192,7 @@ interface NavItem {
     }
     .sidebar-footer {
       padding: 16px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -210,14 +210,14 @@ interface NavItem {
     .sidebar-user-name {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #fff;
+      color: #1e293b;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .sidebar-user-role {
       font-size: 0.65rem;
-      color: var(--sidebar-text);
+      color: #64748b;
     }
     .logout-btn {
       display: flex;

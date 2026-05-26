@@ -34,9 +34,15 @@ public class User {
 
     /**
      * Legacy DB column managed by SumoBase DBaaS (populated by DB trigger).
-     * insertable=false so Hibernate does NOT include it in INSERT — DB trigger provides the value.
+     * insertable=false so Hibernate does NOT include it in INSERT.
      */
     @Column(name = "username", insertable = false, updatable = false)
+    private String sumoUsername;
+
+    /**
+     * App-level username for login — Hibernate-managed via separate DB column.
+     */
+    @Column(name = "app_username", nullable = false, unique = true)
     private String username;
 
     /**
