@@ -5,6 +5,10 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { MockDataService } from '@core/services/mock-data.service';
 import { Expense, Loan } from '@core/models';
 
+// Narrow expense from timeline item
+function asExpense(data: Expense | Loan): Expense { return data as Expense; }
+function asLoan(data: Expense | Loan): Loan { return data as Loan; }
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function fmtThb(v: number): string {
   return '฿' + v.toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -49,7 +53,7 @@ type FilterType = 'ALL' | 'EXPENSE' | 'REPAYMENT';
       <div class="filter-bar">
         <div class="filter-group">
           <label class="filter-label">Show</label>
-          <select [(ngModel)]="filterType" class="filter-select">
+          <select [ngModel]="filterType()" (ngModelChange)="filterType.set($event)" class="filter-select">
             <option value="ALL">All Activity</option>
             <option value="EXPENSE">Expenses Only</option>
             <option value="REPAYMENT">Repayments Only</option>
@@ -64,62 +68,62 @@ type FilterType = 'ALL' | 'EXPENSE' | 'REPAYMENT';
 
       <!-- ── Timeline / Table ─────────────────────────────────────────── -->
       <div class="table-card">
-        <table class="history-table" *ngIf="filteredTimeline().length > 0; else emptyState">
-          <thead>
-            <tr>
-              <th style="width: 50px;"></th>
-              <th>Description</th>
-              <th style="width: 160px;">Date / Time</th>
-              <th style="width: 120px;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of filteredTimeline()" class="timeline-row">
-              <!-- Icon -->
-              <td class="cell-icon">
-                <span class="item-icon">{{ item.type === 'expense' ? '📋' : '💰' }}</span>
-              </td>
+        @if (filteredTimeline().length > 0) {
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;"></th>
+                <th>Description</th>
+                <th style="width: 160px;">Date / Time</th>
+                <th style="width: 120px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredTimeline(); track item.data.id) {
+                <tr class="timeline-row">
+                  <!-- Icon -->
+                  <td class="cell-icon">
+                    <span class="item-icon">{{ item.type === 'expense' ? '📋' : '💰' }}</span>
+                  </td>
 
-              <!-- Description -->
-              <td class="cell-desc">
-                <ng-container *ngIf="item.type === 'expense'; else repaymentDesc">
-                  <span class="desc-main">
-                    Expense: {{ $any(item.data).toko }} - {{ fmtThb($any(item.data).amount) }}
-                  </span>
-                  <span class="desc-sub">
-                    by {{ getUserName($any(item.data).recorderId) }}
-                  </span>
-                </ng-container>
-                <ng-template #repaymentDesc>
-                  <span class="desc-main">
-                    Repayment: {{ fmtThb($any(item.data).actualRepaid) }}
-                  </span>
-                  <span class="desc-sub">
-                    recorded by {{ getUserName($any(item.data).lenderId) }} on loan #{{ item.data.id }}
-                  </span>
-                </ng-template>
-              </td>
+                  <!-- Description -->
+                  <td class="cell-desc">
+                    @if (item.type === 'expense') {
+                      <span class="desc-main">
+                        Expense: {{ asExpense(item.data).toko }} — {{ fmtThb(asExpense(item.data).amount) }}
+                      </span>
+                      <span class="desc-sub">
+                        by {{ getUserName(asExpense(item.data).recorderId ?? 0) }}
+                      </span>
+                    } @else {
+                      <span class="desc-main">
+                        Repayment: {{ fmtThb(asLoan(item.data).actualRepaid ?? 0) }}
+                      </span>
+                      <span class="desc-sub">
+                        from {{ getUserName(asLoan(item.data).borrowerId ?? 0) }} on loan #{{ item.data.id }}
+                      </span>
+                    }
+                  </td>
 
-              <!-- Date/Time -->
-              <td class="cell-date">
-                {{ fmtDateTime(item.data.createdAt!) }}
-              </td>
+                  <!-- Date/Time -->
+                  <td class="cell-date">
+                    {{ fmtDateTime(item.data.createdAt!) }}
+                  </td>
 
-              <!-- Status badge -->
-              <td class="cell-status">
-                <app-status-badge *ngIf="item.type === 'expense'" [status]="item.data.status"></app-status-badge>
-                <app-status-badge *ngIf="item.type === 'repayment'" [status]="item.data.status"></app-status-badge>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <ng-template #emptyState>
+                  <!-- Status badge -->
+                  <td class="cell-status">
+                    <app-status-badge [status]="item.data.status"></app-status-badge>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
           <div class="empty-state">
             <span class="empty-icon">📋</span>
             <span class="empty-text">No activity found</span>
           </div>
-        </ng-template>
+        }
       </div>
 
     </div>
@@ -243,18 +247,20 @@ type FilterType = 'ALL' | 'EXPENSE' | 'REPAYMENT';
       font-size: 1.2rem;
     }
     .cell-desc {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      vertical-align: middle;
     }
     .desc-main {
+      display: block;
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--text-primary);
+      line-height: 1.4;
     }
     .desc-sub {
+      display: block;
       font-size: 0.75rem;
       color: var(--text-muted);
+      margin-top: 2px;
     }
     .cell-date {
       font-size: 0.8rem;
@@ -285,7 +291,12 @@ type FilterType = 'ALL' | 'EXPENSE' | 'REPAYMENT';
 export class HistoryComponent {
   private readonly mockData = inject(MockDataService);
 
-  filterType: FilterType = 'ALL';
+  // Signal — so computed() reacts to changes
+  filterType = signal<FilterType>('ALL');
+
+  // Expose narrow helpers to template
+  readonly asExpense = asExpense;
+  readonly asLoan = asLoan;
 
   // Build combined timeline sorted by date (newest first)
   protected readonly allTimeline = computed<TimelineItem[]>(() => {
@@ -294,7 +305,7 @@ export class HistoryComponent {
       data: e
     }));
     const repayments: TimelineItem[] = this.mockData.loans()
-      .filter(l => (l as any).actualRepaid > 0)
+      .filter(l => (l.actualRepaid ?? 0) > 0)
       .map(l => ({
         type: 'repayment' as const,
         data: l
@@ -306,10 +317,9 @@ export class HistoryComponent {
   });
 
   readonly filteredTimeline = computed(() => {
-    if (this.filterType === 'ALL') return this.allTimeline();
-    if (this.filterType === 'EXPENSE') {
-      return this.allTimeline().filter(i => i.type === 'expense');
-    }
+    const ft = this.filterType();
+    if (ft === 'ALL') return this.allTimeline();
+    if (ft === 'EXPENSE') return this.allTimeline().filter(i => i.type === 'expense');
     return this.allTimeline().filter(i => i.type === 'repayment');
   });
 

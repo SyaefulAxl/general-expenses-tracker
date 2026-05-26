@@ -12,5 +12,8 @@ public class UpdateExpenseRequest {
     private String category;
     private LocalDate expenseDate;
     private ExpenseStatus status;
+    private String toko;
+    private String source;
+    private Boolean shared;
     private String notes;
 }

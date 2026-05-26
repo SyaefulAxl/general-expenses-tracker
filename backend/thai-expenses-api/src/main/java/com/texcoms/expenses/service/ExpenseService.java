@@ -67,6 +67,9 @@ public class ExpenseService {
                 .category(request.getCategory())
                 .expenseDate(request.getExpenseDate())
                 .status(request.getStatus() != null ? request.getStatus() : ExpenseStatus.DRAFT)
+                .toko(request.getToko())
+                .source(request.getSource())
+                .shared(request.getShared() != null ? request.getShared() : false)
                 .notes(request.getNotes())
                 .user(user)
                 .build();
@@ -83,6 +86,9 @@ public class ExpenseService {
         if (request.getCategory() != null) expense.setCategory(request.getCategory());
         if (request.getExpenseDate() != null) expense.setExpenseDate(request.getExpenseDate());
         if (request.getStatus() != null) expense.setStatus(request.getStatus());
+        if (request.getToko() != null) expense.setToko(request.getToko());
+        if (request.getSource() != null) expense.setSource(request.getSource());
+        if (request.getShared() != null) expense.setShared(request.getShared());
         if (request.getNotes() != null) expense.setNotes(request.getNotes());
         expense = expenseRepository.save(expense);
         return toDto(expense);
@@ -126,6 +132,9 @@ public class ExpenseService {
                 .category(expense.getCategory())
                 .expenseDate(expense.getExpenseDate())
                 .status(expense.getStatus())
+                .toko(expense.getToko())
+                .source(expense.getSource())
+                .shared(expense.getShared())
                 .notes(expense.getNotes())
                 .userId(expense.getUser().getId())
                 .userName(expense.getUser().getName())

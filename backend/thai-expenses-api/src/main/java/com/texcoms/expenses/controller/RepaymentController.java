@@ -27,7 +27,7 @@ public class RepaymentController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<RepaymentDto>>> getMyRepayments(
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         List<RepaymentDto> repayments = repaymentRepository
                 .findByUserIdOrderByRepaymentDateDesc(user.getId())
                 .stream()

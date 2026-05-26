@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,13 @@ public class ExpenseController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<ExpenseDto>>> getAllExpenses(
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         List<ExpenseDto> expenses = expenseService.getExpensesByUser(user.getId());
         return ResponseEntity.ok(ApiResponse.ok(expenses));
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<ExpenseDto>>> getAllExpensesAdmin() {
         return ResponseEntity.ok(ApiResponse.ok(expenseService.getAllExpenses()));
     }
@@ -46,7 +48,7 @@ public class ExpenseController {
     public ResponseEntity<ApiResponse<List<ExpenseDto>>> getByStatus(
             @PathVariable ExpenseStatus status,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(ApiResponse.ok(expenseService.getExpensesByUserAndStatus(user.getId(), status)));
     }
 
@@ -55,7 +57,7 @@ public class ExpenseController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(ApiResponse.ok(expenseService.getExpensesByUserAndDateRange(user.getId(), start, end)));
     }
 
@@ -63,7 +65,7 @@ public class ExpenseController {
     public ResponseEntity<ApiResponse<ExpenseDto>> createExpense(
             @Valid @RequestBody CreateExpenseRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         ExpenseDto expense = expenseService.createExpense(request, user.getId());
         return ResponseEntity.ok(ApiResponse.ok("Expense created", expense));
     }
@@ -79,7 +81,7 @@ public class ExpenseController {
     public ResponseEntity<ApiResponse<ExpenseDto>> approveExpense(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User approver = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User approver = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(ApiResponse.ok("Expense approved", expenseService.approveExpense(id, approver.getId())));
     }
 

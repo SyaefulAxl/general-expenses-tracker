@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -18,7 +19,7 @@ import { Expense, User, ExpenseStatus } from '@core/models';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function fmtThb(v: number): string {
-  return '\u0024' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '฿' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -75,6 +76,7 @@ const FORM_STATUS_OPTIONS = [
     ButtonModule,
     DialogModule,
     InputTextModule,
+    InputNumberModule,
     SelectModule,
     DatePickerModule,
     CheckboxModule,
@@ -102,8 +104,8 @@ const FORM_STATUS_OPTIONS = [
           <label class="filter-label">Status</label>
           <p-select
             [options]="STATUS_OPTIONS"
-            [(ngModel)]="filterStatus"
-            (onChange)="applyFilters()"
+            [ngModel]="filterStatus()"
+            (ngModelChange)="filterStatus.set($event)"
             optionLabel="label"
             optionValue="value"
             styleClass="filter-dropdown">
@@ -114,8 +116,8 @@ const FORM_STATUS_OPTIONS = [
           <label class="filter-label">Recorder</label>
           <p-select
             [options]="userDropdownOptions"
-            [(ngModel)]="filterRecorderId"
-            (onChange)="applyFilters()"
+            [ngModel]="filterRecorderId()"
+            (ngModelChange)="filterRecorderId.set($event)"
             optionLabel="label"
             optionValue="value"
             placeholder="All Users"
@@ -126,8 +128,8 @@ const FORM_STATUS_OPTIONS = [
         <div class="filter-group">
           <label class="filter-label">Date Range</label>
           <p-datepicker
-            [(ngModel)]="filterDateRange"
-            (onSelect)="applyFilters()"
+            [ngModel]="filterDateRange()"
+            (ngModelChange)="filterDateRange.set($event)"
             selectionMode="range"
             [showIcon]="true"
             dateFormat="dd M yy"
@@ -187,7 +189,7 @@ const FORM_STATUS_OPTIONS = [
 
               <!-- Description -->
               <td class="cell-desc">
-                <span class="desc-text" pTooltip="exp.description" pTooltipPosition="top">{{ exp.description }}</span>
+                <span class="desc-text" [pTooltip]="exp.description" pTooltipPosition="top">{{ exp.description }}</span>
               </td>
 
               <!-- Category pill -->
@@ -215,7 +217,8 @@ const FORM_STATUS_OPTIONS = [
 
               <!-- Actions -->
               <td class="cell-actions">
-                <div class="action-buttons" *ngIf="canShowActions(exp)">
+                @if (canShowActions(exp)) {
+                <div class="action-buttons">
                   <button
                     pButton
                     type="button"
@@ -244,6 +247,7 @@ const FORM_STATUS_OPTIONS = [
                     (click)="deleteExpense(exp)">
                   </button>
                 </div>
+                }
               </td>
             </tr>
           </ng-template>
@@ -691,7 +695,7 @@ export class ExpensesComponent implements OnInit {
 
   ngOnInit(): void {
     // Load current user from localStorage
-    const stored = localStorage.getItem('thai_expenses_user');
+    const stored = localStorage.getItem('gen_expenses_user');
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as { id: number; name: string; role: string };

@@ -31,7 +31,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.texcoms.expenses.entity.User user = userRepository
-                .findByEmail(userDetails.getUsername())
+                .findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new com.texcoms.expenses.exception.ResourceNotFoundException("User not found"));
         return ResponseEntity.ok(ApiResponse.ok(userService.getUserById(user.getId())));
     }

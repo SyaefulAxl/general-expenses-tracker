@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "loans")
+@Table(name = "gen_loans")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Loan {
 

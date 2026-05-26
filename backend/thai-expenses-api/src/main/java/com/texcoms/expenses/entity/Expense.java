@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "expenses")
+@Table(name = "gen_expenses")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Expense {
 
@@ -32,6 +32,17 @@ public class Expense {
     @Column(nullable = false)
     @Builder.Default
     private ExpenseStatus status = ExpenseStatus.DRAFT;
+
+    /** Store / merchant name (e.g. "Grab", "Seven 11", "Makro") */
+    private String toko;
+
+    /** Who physically paid cash (e.g. "Winda Cash") */
+    private String source;
+
+    /** Whether this expense was split / shared across the team */
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean shared = false;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

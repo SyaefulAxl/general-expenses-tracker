@@ -1,5 +1,6 @@
 /opt/general-expenses-tracker/backend/thai-expenses-api/src/main/java/com/texcoms/expenses/ThaiExpensesApplication.java
 /opt/general-expenses-tracker/backend/thai-expenses-api/src/main/java/com/texcoms/expenses/config/CorsConfig.java
+/opt/general-expenses-tracker/backend/thai-expenses-api/src/main/java/com/texcoms/expenses/config/DataSeeder.java
 /opt/general-expenses-tracker/backend/thai-expenses-api/src/main/java/com/texcoms/expenses/config/SecurityConfig.java
 /opt/general-expenses-tracker/backend/thai-expenses-api/src/main/java/com/texcoms/expenses/config/SumoBaseColumnStabilizer.java
 /opt/general-expenses-tracker/backend/thai-expenses-api/src/main/java/com/texcoms/expenses/config/SumoBaseConnectionCustomizer.java

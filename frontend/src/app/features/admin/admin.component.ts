@@ -30,14 +30,16 @@ interface CurrentUser {
     <div class="admin-wrap">
 
       <!-- ── Access denied ──────────────────────────────────────────── -->
-      <div *ngIf="!isAdmin()" class="access-denied">
-        <div class="denied-icon">🔒</div>
-        <h2 class="denied-title">Access Denied</h2>
-        <p class="denied-text">You need ADMIN role to access this page.</p>
-      </div>
+      @if (!isAdmin()) {
+        <div class="access-denied">
+          <div class="denied-icon">🔒</div>
+          <h2 class="denied-title">Access Denied</h2>
+          <p class="denied-text">You need ADMIN role to access this page.</p>
+        </div>
+      }
 
       <!-- ── Admin panel ─────────────────────────────────────────────── -->
-      <ng-container *ngIf="isAdmin()">
+      @if (isAdmin()) {
 
         <!-- Page header -->
         <header class="page-header">
@@ -133,7 +135,7 @@ interface CurrentUser {
           </p-table>
         </div>
 
-      </ng-container>
+      }
 
     </div>
   `,
@@ -315,7 +317,7 @@ export class AdminComponent {
 
   private loadCurrentUser(): CurrentUser {
     try {
-      const stored = localStorage.getItem('thai_expenses_user');
+      const stored = localStorage.getItem('gen_expenses_user');
       if (stored) {
         return JSON.parse(stored);
       }

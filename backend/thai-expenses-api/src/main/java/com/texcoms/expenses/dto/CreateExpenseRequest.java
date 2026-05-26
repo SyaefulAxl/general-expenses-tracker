@@ -24,5 +24,11 @@ public class CreateExpenseRequest {
     @Builder.Default
     private ExpenseStatus status = ExpenseStatus.DRAFT;
 
+    private String toko;
+    private String source;
+
+    @Builder.Default
+    private Boolean shared = false;
+
     private String notes;
 }

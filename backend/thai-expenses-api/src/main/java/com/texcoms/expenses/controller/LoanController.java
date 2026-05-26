@@ -25,7 +25,7 @@ public class LoanController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<LoanDto>>> getAllLoans(
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(ApiResponse.ok(loanService.getLoansByUser(user.getId())));
     }
 
@@ -38,7 +38,7 @@ public class LoanController {
     public ResponseEntity<ApiResponse<List<LoanDto>>> getLoansByType(
             @PathVariable Loan.LoanType type,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(ApiResponse.ok(loanService.getLoansByUserAndType(user.getId(), type)));
     }
 
@@ -51,7 +51,7 @@ public class LoanController {
     public ResponseEntity<ApiResponse<LoanDto>> createLoan(
             @Valid @RequestBody CreateLoanRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         LoanDto loan = loanService.createLoan(request, user.getId());
         return ResponseEntity.ok(ApiResponse.ok("Loan created", loan));
     }
@@ -79,7 +79,7 @@ public class LoanController {
             @PathVariable Long id,
             @Valid @RequestBody CreateRepaymentRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         RepaymentDto repayment = loanService.addRepayment(id, request, user.getId());
         return ResponseEntity.ok(ApiResponse.ok("Repayment recorded", repayment));
     }

@@ -297,13 +297,14 @@ export class LoginComponent {
     this.errorMessage.set('');
 
     this.authService.login(this.username, this.password).subscribe({
-      next: (res) => {
-        this.authService.setCurrentUser(res);
+      next: () => {
+        // auth.service stores token + user in localStorage already
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err?.error?.message || 'Invalid username or password. Please try again.');
+        const msg = err?.error?.message ?? err?.message ?? 'Invalid username or password. Please try again.';
+        this.errorMessage.set(msg);
       }
     });
   }

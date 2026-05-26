@@ -26,10 +26,4 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Registration successful", response));
     }
 
-    /** Debug: reset a user's password — TEMPORARY, remove after use */
-    @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request.email(), request.newPassword());
-        return ResponseEntity.ok(ApiResponse.ok("Password reset done", null));
-    }
 }

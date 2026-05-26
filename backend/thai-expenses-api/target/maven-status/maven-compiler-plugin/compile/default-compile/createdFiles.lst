@@ -22,6 +22,7 @@ com/texcoms/expenses/dto/ResetPasswordRequest.class
 com/texcoms/expenses/exception/ResourceNotFoundException.class
 com/texcoms/expenses/dto/CreateLoanRequest$CreateLoanRequestBuilder.class
 com/texcoms/expenses/dto/AuthResponse$AuthResponseBuilder.class
+com/texcoms/expenses/config/DataSeeder$SeedUser.class
 com/texcoms/expenses/dto/CreateExpenseRequest.class
 com/texcoms/expenses/dto/ApiResponse.class
 com/texcoms/expenses/repository/UserRepository.class
@@ -29,6 +30,7 @@ com/texcoms/expenses/entity/Repayment.class
 com/texcoms/expenses/dto/CreateRepaymentRequest.class
 com/texcoms/expenses/dto/UpdateLoanRequest.class
 com/texcoms/expenses/service/AuthService.class
+com/texcoms/expenses/config/DataSeeder.class
 com/texcoms/expenses/dto/RepaymentDto$RepaymentDtoBuilder.class
 com/texcoms/expenses/controller/AuthController.class
 com/texcoms/expenses/controller/ExpenseController.class

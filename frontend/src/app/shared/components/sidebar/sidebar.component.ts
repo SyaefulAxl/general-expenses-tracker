@@ -69,6 +69,7 @@ interface NavItem {
     .sidebar {
       width: var(--sidebar-width);
       background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border, var(--border-color));
       display: flex;
       flex-direction: column;
       position: fixed;
@@ -77,7 +78,7 @@ interface NavItem {
       bottom: 0;
       z-index: 100;
       transform: translateX(-100%);
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.2s ease;
     }
     .sidebar--open {
       transform: translateX(0);
@@ -87,7 +88,7 @@ interface NavItem {
       align-items: center;
       gap: 12px;
       padding: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--sidebar-border, var(--border-subtle));
     }
     .sidebar-brand-mark {
       width: 36px;
@@ -109,13 +110,13 @@ interface NavItem {
     .sidebar-brand-title {
       font-weight: 700;
       font-size: 1rem;
-      color: #1e293b;
+      color: var(--text-primary);
       line-height: 1.2;
     }
     .sidebar-brand-subtitle {
       font-weight: 400;
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--text-muted);
     }
     .sidebar-close {
       display: none;
@@ -123,8 +124,8 @@ interface NavItem {
       width: 32px;
       height: 32px;
       border-radius: 6px;
-      border: none;
-      background: rgba(255,255,255,0.1);
+      border: 1px solid var(--sidebar-border, var(--border-color));
+      background: var(--sidebar-hover-bg);
       color: var(--sidebar-text);
       font-size: 0.9rem;
       cursor: pointer;
@@ -165,11 +166,11 @@ interface NavItem {
     }
     .sidebar-nav-item:hover {
       background: var(--sidebar-hover-bg);
-      color: #1e293b;
+      color: var(--sidebar-text-hover);
     }
     .sidebar-nav-item.active {
       background: var(--sidebar-active-bg);
-      color: #2563eb;
+      color: var(--sidebar-text-active);
     }
     .nav-icon {
       font-size: 1rem;
@@ -192,7 +193,7 @@ interface NavItem {
     }
     .sidebar-footer {
       padding: 16px;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid var(--sidebar-border, var(--border-color));
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -210,14 +211,14 @@ interface NavItem {
     .sidebar-user-name {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .sidebar-user-role {
       font-size: 0.65rem;
-      color: #64748b;
+      color: var(--text-muted);
     }
     .logout-btn {
       display: flex;

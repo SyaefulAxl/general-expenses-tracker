@@ -220,6 +220,17 @@ import { ChartModule } from 'primeng/chart';
     </div>
   `,
   styles: [`
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0 0 4px;
+    }
+    .page-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
     .dashboard-header {
       display: flex;
       justify-content: space-between;
@@ -496,7 +507,7 @@ export class DashboardComponent implements OnInit {
       'Accommodation': 'badge-purple',
       'Entertainment': 'badge-red',
     };
-    return 'badge ' + (map[cat] || 'badge-gray');
+    return map[cat] || 'badge-gray';
   }
 
   fmtThb(v: number): string {

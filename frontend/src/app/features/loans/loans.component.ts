@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -13,14 +13,13 @@ import { MessageService } from 'primeng/api';
 import { AvatarComponent } from '@shared/components/avatar/avatar.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { MockDataService } from '@core/services/mock-data.service';
+import { AuthService } from '@core/services/auth.service';
 import { Loan } from '@core/models';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function fmtThb(v: number): string {
-  return '\u0024' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '฿' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
-const CURRENT_USER_ID = 1; // Syaeful
 
 @Component({
   selector: 'app-loans',
@@ -73,106 +72,113 @@ const CURRENT_USER_ID = 1; // Syaeful
       </div>
 
       <!-- ── "I owe ↑" section ────────────────────────────────────────── -->
-      <section class="loan-section" *ngIf="iOweLoans().length > 0">
-        <h2 class="section-title">I owe ↑</h2>
-        <div class="table-card">
-          <p-table [value]="iOweLoans()" [paginator]="true" [rows]="5" styleClass="p-datatable-sm p-datatable-striped">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Lender</th>
-                <th style="text-align: right;">Original Amount</th>
-                <th style="text-align: right;">Declared Repayment</th>
-                <th style="text-align: center;">Actual Repaid</th>
-                <th style="text-align: right;">Remaining</th>
-                <th style="width: 110px;">Status</th>
-                <th style="width: 100px; text-align: center;">Action</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-loan>
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <app-avatar [name]="getUserName(loan.lenderId)"></app-avatar>
-                    <span>{{ getUserName(loan.lenderId) }}</span>
-                  </div>
-                </td>
-                <td style="text-align: right;">{{ fmtThb(loan.amount) }}</td>
-                <td style="text-align: right;">{{ fmtThb(loan.declaredRepayment ?? loan.amount ?? 0) }}</td>
-                <td>
-                  <div class="progress-cell">
-                    <p-progressBar [value]="getRepaidPercent(loan)" [showValue]="false" styleClass="repaid-progress"></p-progressBar>
-                    <span class="progress-label">{{ fmtThb(loan.actualRepaid) }}</span>
-                  </div>
-                </td>
-                <td style="text-align: right; font-weight: 600;">{{ fmtThb(loan.remainingBalance ?? (loan.declaredRepayment ?? loan.amount ?? 0) - loan.actualRepaid) }}</td>
-                <td><app-status-badge [status]="loan.status"></app-status-badge></td>
-                <td style="text-align: center;">
-                  <button pButton type="button" label="Repay" class="p-button-outlined p-button-sm p-button-rounded" (click)="openRepaymentDialog(loan)"></button>
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td colspan="7" class="empty-cell">No outstanding loans</td></tr>
-            </ng-template>
-          </p-table>
-        </div>
-      </section>
+      @if (iOweLoans().length > 0) {
+        <section class="loan-section">
+          <h2 class="section-title">I owe ↑</h2>
+          <div class="table-card">
+            <p-table [value]="iOweLoans()" [paginator]="true" [rows]="5" styleClass="p-datatable-sm p-datatable-striped">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>Lender</th>
+                  <th style="text-align: right;">Original Amount</th>
+                  <th style="text-align: right;">Declared Repayment</th>
+                  <th style="text-align: center;">Actual Repaid</th>
+                  <th style="text-align: right;">Remaining</th>
+                  <th style="width: 110px;">Status</th>
+                  <th style="width: 100px; text-align: center;">Action</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-loan>
+                <tr>
+                  <td>
+                    <div class="user-cell">
+                      <app-avatar [name]="getUserName(loan.lenderId)"></app-avatar>
+                      <span>{{ getUserName(loan.lenderId) }}</span>
+                    </div>
+                  </td>
+                  <td style="text-align: right;">{{ fmtThb(loan.amount) }}</td>
+                  <td style="text-align: right;">{{ fmtThb(loan.declaredRepayment ?? loan.amount ?? 0) }}</td>
+                  <td>
+                    <div class="progress-cell">
+                      <p-progressBar [value]="getRepaidPercent(loan)" [showValue]="false" styleClass="repaid-progress"></p-progressBar>
+                      <span class="progress-label">{{ fmtThb(loan.actualRepaid ?? 0) }}</span>
+                    </div>
+                  </td>
+                  <td style="text-align: right; font-weight: 600;">{{ fmtThb(getRemainingBalance(loan)) }}</td>
+                  <td><app-status-badge [status]="loan.status"></app-status-badge></td>
+                  <td style="text-align: center;">
+                    <button pButton type="button" label="Repay" class="p-button-outlined p-button-sm p-button-rounded" (click)="openRepaymentDialog(loan)"></button>
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="emptymessage">
+                <tr><td colspan="7" class="empty-cell">No outstanding loans</td></tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </section>
+      }
 
       <!-- ── "Owed to me ↓" section ──────────────────────────────────── -->
-      <section class="loan-section" *ngIf="owedToMeLoans().length > 0">
-        <h2 class="section-title">Owed to me ↓</h2>
-        <div class="table-card">
-          <p-table [value]="owedToMeLoans()" [paginator]="true" [rows]="5" styleClass="p-datatable-sm p-datatable-striped">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Borrower</th>
-                <th style="text-align: right;">Original Amount</th>
-                <th style="text-align: right;">Declared Repayment</th>
-                <th style="text-align: center;">Actual Repaid</th>
-                <th style="text-align: right;">Remaining</th>
-                <th style="width: 110px;">Status</th>
-                <th style="width: 100px; text-align: center;">Action</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-loan>
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <app-avatar [name]="getUserName(loan.borrowerId)"></app-avatar>
-                    <span>{{ getUserName(loan.borrowerId) }}</span>
-                  </div>
-                </td>
-                <td style="text-align: right;">{{ fmtThb(loan.amount) }}</td>
-                <td style="text-align: right;">{{ fmtThb(loan.declaredRepayment ?? loan.amount ?? 0) }}</td>
-                <td>
-                  <div class="progress-cell">
-                    <p-progressBar [value]="getRepaidPercent(loan)" [showValue]="false" styleClass="repaid-progress"></p-progressBar>
-                    <span class="progress-label">{{ fmtThb(loan.actualRepaid) }}</span>
-                  </div>
-                </td>
-                <td style="text-align: right; font-weight: 600;">{{ fmtThb(loan.remainingBalance ?? (loan.declaredRepayment ?? loan.amount ?? 0) - loan.actualRepaid) }}</td>
-                <td><app-status-badge [status]="loan.status"></app-status-badge></td>
-                <td style="text-align: center;">
-                  <button pButton type="button" label="Record" class="p-button-outlined p-button-sm p-button-rounded" (click)="openRepaymentDialog(loan)"></button>
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td colspan="7" class="empty-cell">No outstanding loans</td></tr>
-            </ng-template>
-          </p-table>
-        </div>
-      </section>
+      @if (owedToMeLoans().length > 0) {
+        <section class="loan-section">
+          <h2 class="section-title">Owed to me ↓</h2>
+          <div class="table-card">
+            <p-table [value]="owedToMeLoans()" [paginator]="true" [rows]="5" styleClass="p-datatable-sm p-datatable-striped">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>Borrower</th>
+                  <th style="text-align: right;">Original Amount</th>
+                  <th style="text-align: right;">Declared Repayment</th>
+                  <th style="text-align: center;">Actual Repaid</th>
+                  <th style="text-align: right;">Remaining</th>
+                  <th style="width: 110px;">Status</th>
+                  <th style="width: 100px; text-align: center;">Action</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-loan>
+                <tr>
+                  <td>
+                    <div class="user-cell">
+                      <app-avatar [name]="getUserName(loan.borrowerId)"></app-avatar>
+                      <span>{{ getUserName(loan.borrowerId) }}</span>
+                    </div>
+                  </td>
+                  <td style="text-align: right;">{{ fmtThb(loan.amount) }}</td>
+                  <td style="text-align: right;">{{ fmtThb(loan.declaredRepayment ?? loan.amount ?? 0) }}</td>
+                  <td>
+                    <div class="progress-cell">
+                      <p-progressBar [value]="getRepaidPercent(loan)" [showValue]="false" styleClass="repaid-progress"></p-progressBar>
+                      <span class="progress-label">{{ fmtThb(loan.actualRepaid ?? 0) }}</span>
+                    </div>
+                  </td>
+                  <td style="text-align: right; font-weight: 600;">{{ fmtThb(getRemainingBalance(loan)) }}</td>
+                  <td><app-status-badge [status]="loan.status"></app-status-badge></td>
+                  <td style="text-align: center;">
+                    <button pButton type="button" label="Record" class="p-button-outlined p-button-sm p-button-rounded" (click)="openRepaymentDialog(loan)"></button>
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="emptymessage">
+                <tr><td colspan="7" class="empty-cell">No outstanding loans</td></tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </section>
+      }
 
       <!-- ── Empty state ──────────────────────────────────────────────── -->
-      <div class="empty-state" *ngIf="iOweLoans().length === 0 && owedToMeLoans().length === 0">
-        <span class="empty-icon">🤝</span>
-        <span class="empty-text">No outstanding loans</span>
-      </div>
+      @if (iOweLoans().length === 0 && owedToMeLoans().length === 0) {
+        <div class="empty-state">
+          <span class="empty-icon">🤝</span>
+          <span class="empty-text">No outstanding loans</span>
+        </div>
+      }
 
       <!-- ── Record Repayment Dialog ──────────────────────────────────── -->
       <p-dialog
-        [(visible)]="repaymentDialogVisible"
+        [visible]="repaymentDialogVisible()"
+        (visibleChange)="repaymentDialogVisible.set($event)"
         header="Record Repayment"
         [modal]="true"
         [style]="{ width: '420px' }"
@@ -180,45 +186,47 @@ const CURRENT_USER_ID = 1; // Syaeful
         [draggable]="false"
         [resizable]="false">
 
-        <div class="dialog-form" *ngIf="selectedLoan()">
-          <div class="dialog-loan-info">
-            <span class="dialog-info-label">{{ isIOwe ? 'Repaying to' : 'Collecting from' }}:</span>
-            <div class="dialog-user">
-              <app-avatar [name]="getUserName(isIOwe ? selectedLoan()!.lenderId ?? 0 : selectedLoan()!.borrowerId ?? 0)"></app-avatar>
-              <span class="dialog-user-name">{{ getUserName(isIOwe ? selectedLoan()!.lenderId ?? 0 : selectedLoan()!.borrowerId ?? 0) }}</span>
+        @if (selectedLoan()) {
+          <div class="dialog-form">
+            <div class="dialog-loan-info">
+              <span class="dialog-info-label">{{ isIOwe ? 'Repaying to' : 'Collecting from' }}:</span>
+              <div class="dialog-user">
+                <app-avatar [name]="getUserName(isIOwe ? (selectedLoan()!.lenderId ?? 0) : (selectedLoan()!.borrowerId ?? 0))"></app-avatar>
+                <span class="dialog-user-name">{{ getUserName(isIOwe ? (selectedLoan()!.lenderId ?? 0) : (selectedLoan()!.borrowerId ?? 0)) }}</span>
+              </div>
+              <div class="dialog-loan-details">
+                <span>Remaining: <strong>{{ fmtThb(getRemainingBalance(selectedLoan()!)) }}</strong></span>
+              </div>
             </div>
-            <div class="dialog-loan-details">
-              <span>Remaining: <strong>{{ fmtThb(getRemainingBalance(selectedLoan()!)) }}</strong></span>
+
+            <div class="form-field">
+              <label for="repayAmount" class="form-label">Amount (THB)</label>
+              <p-inputNumber
+                id="repayAmount"
+                [(ngModel)]="repaymentAmount"
+                mode="currency"
+                currency="THB"
+                locale="en-US"
+                [min]="0"
+                [max]="getRemainingBalance(selectedLoan()!)"
+                placeholder="0.00"
+                styleClass="w-full">
+              </p-inputNumber>
+            </div>
+
+            <div class="form-field">
+              <label for="repayNote" class="form-label">Note (optional)</label>
+              <textarea
+                pTextarea
+                id="repayNote"
+                [(ngModel)]="repaymentNote"
+                placeholder="Add a note..."
+                rows="3"
+                class="w-full">
+              </textarea>
             </div>
           </div>
-
-          <div class="form-field">
-            <label for="repayAmount" class="form-label">Amount (THB)</label>
-            <p-inputNumber
-              id="repayAmount"
-              [(ngModel)]="repaymentAmount"
-              mode="currency"
-              currency="THB"
-              locale="en-US"
-              [min]="0"
-              [max]="getRemainingBalance(selectedLoan()!)"
-              placeholder="0.00"
-              styleClass="w-full">
-            </p-inputNumber>
-          </div>
-
-          <div class="form-field">
-            <label for="repayNote" class="form-label">Note (optional)</label>
-            <textarea
-              pInputTextarea
-              id="repayNote"
-              [(ngModel)]="repaymentNote"
-              placeholder="Add a note..."
-              rows="3"
-              class="w-full">
-            </textarea>
-          </div>
-        </div>
+        }
 
         <ng-template pTemplate="footer">
           <button pButton type="button" label="Cancel" class="p-button-text" (click)="closeRepaymentDialog()"></button>
@@ -245,12 +253,12 @@ const CURRENT_USER_ID = 1; // Syaeful
     .page-title {
       font-size: 1.5rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--text-primary);
       margin: 0 0 4px;
     }
     .page-sub {
       font-size: 0.8rem;
-      color: #64748B;
+      color: var(--text-muted);
       margin: 0;
     }
 
@@ -262,32 +270,33 @@ const CURRENT_USER_ID = 1; // Syaeful
       margin-bottom: 24px;
     }
     .summary-card {
-      background: white;
+      background: var(--surface-card);
       border-radius: 12px;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--border-color);
       padding: 16px 20px;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: var(--shadow-sm);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .card-label {
       font-size: 0.7rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .card-value {
       font-size: 1.4rem;
       font-weight: 700;
-      color: #0F172A;
+      color: var(--text-primary);
     }
-    .card-value.positive { color: #059669; }
-    .card-value.negative { color: #DC2626; }
-    .card-positive .card-value { color: #059669; }
-    .card-negative .card-value { color: #DC2626; }
-    .card-count .card-value { color: #7C3AED; }
+    .card-value.positive { color: var(--accent-success); }
+    .card-value.negative { color: var(--accent-danger); }
+    .card-positive .card-value { color: var(--accent-success); }
+    .card-negative .card-value { color: var(--accent-danger); }
+    .card-count .card-value { color: var(--accent-purple); }
 
     /* ── Loan section ── */
     .loan-section {
@@ -296,7 +305,7 @@ const CURRENT_USER_ID = 1; // Syaeful
     .section-title {
       font-size: 1rem;
       font-weight: 700;
-      color: #334155;
+      color: var(--text-secondary);
       margin: 0 0 12px;
       display: flex;
       align-items: center;
@@ -307,37 +316,39 @@ const CURRENT_USER_ID = 1; // Syaeful
       display: inline-block;
       width: 4px;
       height: 18px;
-      background: #7C3AED;
+      background: var(--accent-purple);
       border-radius: 2px;
     }
 
     /* ── Table card ── */
     .table-card {
-      background: white;
+      background: var(--surface-card);
       border-radius: 12px;
-      border: 1px solid #E2E8F0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-      background: #F8FAFC;
+      background: var(--bg-tertiary);
       font-size: 0.7rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       padding: 12px 16px;
-      border-color: #E2E8F0;
+      border-color: var(--border-color);
     }
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
       padding: 12px 16px;
       font-size: 0.85rem;
-      color: #334155;
-      border-color: #F1F5F9;
+      color: var(--text-secondary);
+      border-color: var(--border-subtle);
       vertical-align: middle;
+      background: var(--surface-card);
     }
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
-      background: #F8FAFC;
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
+      background: var(--bg-tertiary) !important;
     }
 
     /* ── User cell ── */
@@ -358,11 +369,11 @@ const CURRENT_USER_ID = 1; // Syaeful
       border-radius: 4px;
     }
     :host ::ng-deep .repaid-progress .p-progressbar-value {
-      background: linear-gradient(90deg, #7C3AED, #A855F7);
+      background: linear-gradient(90deg, var(--accent-purple), #A855F7);
     }
     .progress-label {
       font-size: 0.75rem;
-      color: #64748B;
+      color: var(--text-muted);
       text-align: right;
     }
 
@@ -373,9 +384,9 @@ const CURRENT_USER_ID = 1; // Syaeful
       align-items: center;
       justify-content: center;
       padding: 48px;
-      background: white;
+      background: var(--surface-card);
       border-radius: 12px;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--border-color);
     }
     .empty-icon {
       font-size: 3rem;
@@ -383,11 +394,11 @@ const CURRENT_USER_ID = 1; // Syaeful
     }
     .empty-text {
       font-size: 1rem;
-      color: #64748B;
+      color: var(--text-muted);
     }
     .empty-cell {
       text-align: center;
-      color: #64748B;
+      color: var(--text-muted);
       padding: 32px !important;
     }
 
@@ -398,7 +409,7 @@ const CURRENT_USER_ID = 1; // Syaeful
       gap: 16px;
     }
     .dialog-loan-info {
-      background: #F8FAFC;
+      background: var(--bg-tertiary);
       border-radius: 8px;
       padding: 16px;
       display: flex;
@@ -407,7 +418,7 @@ const CURRENT_USER_ID = 1; // Syaeful
     }
     .dialog-info-label {
       font-size: 0.75rem;
-      color: #64748B;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -419,11 +430,11 @@ const CURRENT_USER_ID = 1; // Syaeful
     .dialog-user-name {
       font-size: 1rem;
       font-weight: 600;
-      color: #0F172A;
+      color: var(--text-primary);
     }
     .dialog-loan-details {
       font-size: 0.85rem;
-      color: #64748B;
+      color: var(--text-muted);
     }
     .form-field {
       display: flex;
@@ -433,16 +444,29 @@ const CURRENT_USER_ID = 1; // Syaeful
     .form-label {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #334155;
+      color: var(--text-secondary);
     }
     :host ::ng-deep .w-full {
       width: 100%;
     }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .loans-wrap { padding: 16px; }
+      .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .summary-cards { grid-template-columns: 1fr; }
+    }
   `]
 })
-export class LoansComponent {
+export class LoansComponent implements OnInit {
   private readonly dataService = inject(MockDataService);
   private readonly messageService = inject(MessageService);
+  private readonly authService = inject(AuthService);
+
+  // ── Current user ID (resolved on init from auth service) ────────────────────
+  private readonly currentUserId = signal<number>(0);
 
   // ── Form state ──────────────────────────────────────────────────────────────
   readonly repaymentDialogVisible = signal(false);
@@ -450,17 +474,24 @@ export class LoansComponent {
   repaymentAmount: number | null = null;
   repaymentNote = '';
 
+  ngOnInit(): void {
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      this.currentUserId.set(user.id);
+    }
+  }
+
   // ── Computed: current user is lender (owed to me) or borrower (i owe) ──
   readonly owedToMeLoans = computed(() =>
     this.dataService.loans().filter(l =>
-      l.lenderId === CURRENT_USER_ID &&
+      l.lenderId === this.currentUserId() &&
       (l.status === 'UNSETTLED' || l.status === 'PARTIAL')
     )
   );
 
   readonly iOweLoans = computed(() =>
     this.dataService.loans().filter(l =>
-      l.borrowerId === CURRENT_USER_ID &&
+      l.borrowerId === this.currentUserId() &&
       (l.status === 'UNSETTLED' || l.status === 'PARTIAL')
     )
   );
@@ -477,7 +508,7 @@ export class LoansComponent {
 
   readonly openLoansCount = computed(() =>
     this.dataService.loans().filter(l =>
-      (l.lenderId === CURRENT_USER_ID || l.borrowerId === CURRENT_USER_ID) &&
+      (l.lenderId === this.currentUserId() || l.borrowerId === this.currentUserId()) &&
       (l.status === 'UNSETTLED' || l.status === 'PARTIAL')
     ).length
   );
@@ -501,7 +532,7 @@ export class LoansComponent {
 
   get isIOwe(): boolean {
     const loan = this.selectedLoan();
-    return loan ? loan.borrowerId === CURRENT_USER_ID : false;
+    return loan ? loan.borrowerId === this.currentUserId() : false;
   }
 
   // ── Repayment dialog ────────────────────────────────────────────────────
