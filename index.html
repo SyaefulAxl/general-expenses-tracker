@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thailand Expenses Tracker — Texcoms Worldwide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-700: #1d4ed8;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: "Inter", -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 1080px; width: 100%; }
+    .header { text-align: center; margin-bottom: 48px; }
+    .brand {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: white;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+      font-weight: 600; font-size: 14px;
+      letter-spacing: -0.01em;
+      margin-bottom: 32px;
+      border: 1px solid var(--border);
+    }
+    .brand-mark {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-700));
+      color: white; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    h1 {
+      font-size: 56px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05;
+      margin: 0 0 16px;
+    }
+    h1 .accent { color: var(--primary); }
+    .subtitle { color: var(--muted); font-size: 18px; max-width: 640px; margin: 0 auto; line-height: 1.5; }
+    .meta {
+      display: inline-flex; gap: 20px; flex-wrap: wrap;
+      margin-top: 24px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: white;
+      border: 1px solid var(--border);
+      font-size: 13px; color: var(--muted);
+    }
+    .meta strong { color: var(--text); font-weight: 600; }
+
+    .grid {
+      display: grid; gap: 24px;
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      display: block; text-decoration: none; color: inherit;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms, border-color 200ms;
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px -10px rgba(15,23,42,0.12);
+      border-color: var(--primary);
+    }
+    .card .badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eff6ff; color: var(--primary-700);
+      margin-bottom: 16px;
+    }
+    .card .badge.variants { background: #fef3c7; color: #b45309; }
+    .card h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .card .desc { color: var(--muted); font-size: 15px; line-height: 1.55; margin: 0 0 24px; }
+    .card .footer { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primary); font-size: 14px; }
+    .card .preview {
+      width: 100%; aspect-ratio: 16/10;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card .preview svg { width: 100%; height: 100%; }
+
+    .footer-note {
+      margin-top: 56px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer-note a { color: var(--primary); text-decoration: none; }
+    .footer-note a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-mark">฿</div>
+        <span>Texcoms Worldwide · IT Department</span>
+      </div>
+      <h1>Thailand Expenses Tracker<br /><span class="accent">Fieldtrip Edition</span></h1>
+      <p class="subtitle">A 5-tab SPA for Dina, Winda, and Syaeful — log real-time expenses, track inter-member loans, and stay clear on who owes whom.</p>
+      <div class="meta">
+        <span><strong>160</strong> expenses</span>
+        <span><strong>101</strong> loans</span>
+        <span><strong>3</strong> users</span>
+        <span><strong>May 7–16, 2026</strong></span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <a class="card" href="Prototype.html">
+        <div class="preview">
+          <svg viewBox="0 0 320 200">
+            <!-- Desktop window -->
+            <rect x="20" y="30" width="180" height="140" rx="8" fill="white" stroke="#cbd5e1" stroke-width="1"/>
+            <rect x="20" y="30" width="180" height="20" rx="8" fill="#1e293b"/>
+            <circle cx="30" cy="40" r="3" fill="#ef4444"/><circle cx="40" cy="40" r="3" fill="#f59e0b"/><circle cx="50" cy="40" r="3" fill="#10b981"/>
+            <rect x="28" y="60" width="50" height="6" rx="2" fill="#2563eb"/>
+            <rect x="28" y="74" width="40" height="4" rx="2" fill="#cbd5e1"/>
+            <rect x="28" y="86" width="160" height="30" rx="4" fill="#eff6ff"/>
+            <rect x="34" y="94" width="40" height="6" rx="2" fill="#1e3a8a"/>
+            <rect x="34" y="104" width="60" height="4" rx="2" fill="#93c5fd"/>
+            <rect x="28" y="124" width="76" height="32" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+            <rect x="112" y="124" width="76" height="32" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+            <!-- Phone -->
+            <rect x="218" y="22" width="78" height="160" rx="14" fill="white" stroke="#cbd5e1" stroke-width="1.5"/>
+            <rect x="226" y="38" width="62" height="44" rx="6" fill="#fef2f2"/>
+            <rect x="232" y="46" width="30" height="4" rx="2" fill="#94a3b8"/>
+            <rect x="232" y="58" width="40" height="10" rx="2" fill="#dc2626"/>
+            <rect x="226" y="92" width="62" height="28" rx="4" fill="#f8fafc"/>
+            <rect x="226" y="126" width="62" height="28" rx="4" fill="#f8fafc"/>
+          </svg>
+        </div>
+        <div class="badge">Working prototype</div>
+        <h2>Prototype</h2>
+        <p class="desc">Full interactive SPA — desktop + mobile side by side. Switch between Syaeful, Winda, and Dina. Submit expenses, declare repayments, record partial payments. All driven by the real Excel data.</p>
+        <div class="footer">Open prototype →</div>
+      </a>
+
+      <a class="card" href="Variations.html">
+        <div class="preview" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+          <svg viewBox="0 0 320 200">
+            <!-- 6 mini frames in 3x2 grid -->
+            <g>
+              <rect x="20" y="30" width="86" height="46" rx="4" fill="white" stroke="#cbd5e1"/>
+              <rect x="20" y="30" width="86" height="6" rx="4" fill="#1e293b"/>
+              <rect x="26" y="44" width="20" height="3" rx="1" fill="#2563eb"/>
+              <rect x="26" y="52" width="74" height="18" rx="2" fill="#eff6ff"/>
+            </g>
+            <g>
+              <rect x="116" y="30" width="86" height="46" rx="4" fill="white" stroke="#cbd5e1"/>
+              <rect x="116" y="30" width="86" height="6" rx="4" fill="#1e293b"/>
+              <rect x="122" y="44" width="20" height="3" rx="1" fill="#ea580c"/>
+              <rect x="122" y="52" width="74" height="18" rx="2" fill="#fff7ed"/>
+            </g>
+            <g>
+              <rect x="212" y="30" width="86" height="46" rx="4" fill="white" stroke="#cbd5e1"/>
+              <rect x="212" y="30" width="86" height="6" rx="4" fill="#0b1220"/>
+              <rect x="218" y="44" width="20" height="3" rx="1" fill="#60a5fa"/>
+              <rect x="218" y="52" width="74" height="18" rx="2" fill="#1e293b"/>
+            </g>
+            <g>
+              <rect x="20" y="92" width="86" height="46" rx="4" fill="white" stroke="#cbd5e1"/>
+              <rect x="20" y="92" width="86" height="6" rx="4" fill="#1e293b"/>
+              <rect x="26" y="106" width="20" height="3" rx="1" fill="#0d9488"/>
+              <circle cx="48" cy="122" r="8" fill="#ccfbf1"/>
+              <circle cx="78" cy="122" r="8" fill="#ccfbf1"/>
+            </g>
+            <g>
+              <rect x="116" y="92" width="86" height="46" rx="4" fill="white" stroke="#cbd5e1"/>
+              <rect x="116" y="92" width="86" height="6" rx="4" fill="#1e293b"/>
+              <rect x="122" y="106" width="20" height="3" rx="1" fill="#2563eb"/>
+              <line x1="122" y1="114" x2="200" y2="114" stroke="#e2e8f0"/>
+              <line x1="122" y1="122" x2="200" y2="122" stroke="#e2e8f0"/>
+              <line x1="122" y1="130" x2="200" y2="130" stroke="#e2e8f0"/>
+            </g>
+            <g>
+              <rect x="212" y="92" width="86" height="46" rx="4" fill="white" stroke="#cbd5e1"/>
+              <rect x="212" y="92" width="86" height="6" rx="4" fill="#1e293b"/>
+              <rect x="218" y="106" width="20" height="3" rx="1" fill="#2563eb"/>
+              <rect x="222" y="118" width="68" height="14" rx="7" fill="#2563eb"/>
+            </g>
+            <text x="160" y="170" text-anchor="middle" fill="#b45309" font-size="13" font-weight="600" font-family="Inter">7 variation sections · ~25 artboards</text>
+          </svg>
+        </div>
+        <div class="badge variants">Variations canvas</div>
+        <h2>Variations</h2>
+        <p class="desc">Side-by-side artboards exploring dashboard layouts (matrix · graph · table), loan views, expense entry styles (modal · drawer · inline), themes, density, typography, and mobile per role. Drag to pan, scroll to zoom.</p>
+        <div class="footer">Browse variations →</div>
+      </a>
+    </div>
+
+    <div class="footer-note">
+      Built from <strong>BRD-TXC-EXP-2025-001 v1.5</strong> · <strong>DD-TXC-EXP-2025-001 v1.0</strong> · Excel data import (32 raw rows → 160 per-person expenses)
+    </div>
+  </div>
+</body>
+</html>

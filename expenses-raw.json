@@ -1,0 +1,297 @@
+[
+  {
+    "rowNum": 4,
+    "date": "2026-07-05",
+    "toko": "Grab",
+    "description": "",
+    "amount": 200,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 5,
+    "date": "2026-07-05",
+    "toko": "Grab",
+    "description": "Water",
+    "amount": 22,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 12,
+    "date": "2026-08-05",
+    "toko": "Seven 11",
+    "description": "",
+    "amount": 30,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 13,
+    "date": "2026-08-05",
+    "toko": "Seven 11",
+    "description": "spicy seaweed snack",
+    "amount": 49,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 62,
+    "date": "2026-11-05",
+    "toko": "71",
+    "description": "",
+    "amount": 1000,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 69,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "Wai Wai High Fiber Rice Vermicelli",
+    "amount": 24,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 70,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 32.5,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 71,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 39,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 72,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 115,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 76,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 15,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 77,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 15,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 78,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 78,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 79,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 30,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 82,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 35,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 85,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 35,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 87,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 37,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 88,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 41,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 89,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 37,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 90,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 15,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 91,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 15,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 94,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 75,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 95,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 45,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 96,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 65,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 97,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 65,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 99,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 24,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 100,
+    "date": "2026-12-05",
+    "toko": "Caffee",
+    "description": "",
+    "amount": 49,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 124,
+    "date": "2026-05-16",
+    "toko": "Tops",
+    "description": "",
+    "amount": 10,
+    "split": {
+      "Winda": 20,
+      "Syaeful": 20
+    },
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 125,
+    "date": "2026-05-16",
+    "toko": "Tops",
+    "description": "",
+    "amount": 35,
+    "split": {
+      "Syaeful": 35
+    },
+    "splitMarker": false,
+    "paidBy": "Winda"
+  },
+  {
+    "rowNum": 130,
+    "date": "2026-05-16",
+    "toko": "Tops",
+    "description": "",
+    "amount": 11,
+    "split": {},
+    "splitMarker": false,
+    "paidBy": "Winda"
+  }
+]
