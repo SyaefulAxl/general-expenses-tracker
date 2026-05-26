@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "thai-expenses-frontend": {
+    "general-expenses-frontend": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:class": {
