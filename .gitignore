@@ -1,0 +1,37 @@
+# Dependencies
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/.angular/
+backend/**/target/
+backend/**/*.class
+backend/**/*.jar
+backend/**/*.war
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Environment secrets (keep templates)
+frontend/src/environments/environment.*.ts
+
+# Logs
+*.log
+npm-debug.log*
+
+# Uploads (keep directory structure)
+uploads/*
+!uploads/.gitkeep
+
+# OS caches
+*.swp
+*.swo
