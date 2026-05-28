@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AvatarComponent } from '../avatar/avatar.component';
@@ -26,8 +26,8 @@ interface NavItem {
       <nav>
         @for (item of navItems(); track item.id) {
           <a [class.active]="currentPage() === item.id" (click)="navigate(item.id)">
-            <span>{{ item.icon }}</span>
-            {{ item.label }}
+            <i class="pi" [class]="item.icon"></i>
+            <span>{{ item.label }}</span>
             @if (item.badge && item.badge > 0) {
               <span class="badge-num">{{ item.badge }}</span>
             }
@@ -41,7 +41,7 @@ interface NavItem {
             <div class="name">{{ currentUser()?.name || 'Guest' }}</div>
             <div class="role">{{ currentUser()?.role || '—' }}</div>
           </div>
-          <span style="color:#64748B;font-size:0.7rem">▼</span>
+          <i class="pi pi-chevron-down topbar-chev"></i>
         </button>
         @if (menuOpen()) {
           <div class="user-menu">
@@ -67,8 +67,8 @@ interface NavItem {
       align-items: center;
       height: 60px;
       padding: 0 24px;
-      background: white;
-      border-bottom: 1px solid #E2E8F0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       gap: 32px;
       position: sticky;
       top: 0;
@@ -80,32 +80,33 @@ interface NavItem {
       gap: 8px;
       font-weight: 700;
       font-size: 1rem;
-      color: #0F172A;
+      color: var(--text);
     }
     .brand-mark {
       width: 32px; height: 32px;
-      border-radius: 8px;
-      background: #2563EB;
-      color: white;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #fff;
       display: flex; align-items: center; justify-content: center;
       font-size: 1.1rem; font-weight: 800;
     }
-    .brand .subtitle { font-weight: 400; color: #64748B; font-size: 0.875rem; }
+    .brand .subtitle { font-weight: 400; color: var(--text-subtle); font-size: 0.875rem; }
     .topbar nav { display: flex; gap: 4px; flex: 1; }
     .topbar nav a {
-      display: flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 12px;
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
       font-size: 0.8rem; font-weight: 500;
-      color: #64748B;
+      color: var(--text-subtle);
       cursor: pointer;
       text-decoration: none;
-      transition: all 0.15s;
+      transition: background 0.15s, color 0.15s;
     }
-    .topbar nav a:hover { background: #F1F5F9; color: #0F172A; }
-    .topbar nav a.active { background: #EFF6FF; color: #2563EB; font-weight: 600; }
+    .topbar nav a i { font-size: 0.85rem; }
+    .topbar nav a:hover { background: var(--surface-sunken); color: var(--text); }
+    .topbar nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
     .badge-num {
-      background: #EF4444; color: white;
+      background: var(--danger); color: #fff;
       border-radius: 9999px;
       font-size: 0.65rem; font-weight: 700;
       padding: 1px 6px; min-width: 18px;
@@ -115,29 +116,32 @@ interface NavItem {
     .user-switcher {
       display: flex; align-items: center; gap: 8px;
       padding: 6px 10px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       background: transparent;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--border);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: background 0.15s;
+      font-family: inherit;
     }
-    .user-switcher:hover { background: #F1F5F9; }
-    .user-info .name { font-size: 0.8rem; font-weight: 600; color: #0F172A; }
-    .user-info .role { font-size: 0.65rem; color: #64748B; }
+    .user-switcher:hover { background: var(--surface-muted); }
+    .user-info .name { font-size: 0.8rem; font-weight: 600; color: var(--text); text-align: left; }
+    .user-info .role { font-size: 0.65rem; color: var(--text-subtle); text-align: left; }
+    .topbar-chev { color: var(--text-subtle); font-size: 0.65rem; }
+
     .user-menu {
       position: absolute; top: calc(100% + 8px); right: 0;
-      background: white;
-      border: 1px solid #E2E8F0;
-      border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
       min-width: 240px;
       z-index: 200;
       overflow: hidden;
     }
     .menu-header {
-      padding: 8px 12px 4px;
-      font-size: 0.65rem; font-weight: 600;
-      color: #64748B;
+      padding: 10px 12px 6px;
+      font-size: 0.65rem; font-weight: 700;
+      color: var(--text-subtle);
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
@@ -147,85 +151,85 @@ interface NavItem {
       cursor: pointer;
       transition: background 0.1s;
     }
-    .user-menu-item:hover { background: #F8FAFC; }
-    .user-menu-item.current { background: #EFF6FF; }
-    .user-menu-item .semi { font-size: 0.8rem; font-weight: 600; color: #0F172A; }
-    .user-menu-item .muted { color: #64748B; }
+    .user-menu-item:hover { background: var(--surface-muted); }
+    .user-menu-item.current { background: var(--accent-soft); }
+    .user-menu-item .semi { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+    .user-menu-item .muted { color: var(--text-subtle); }
     .user-menu-item .text-xs { font-size: 0.7rem; }
     .role-tag {
       margin-left: auto;
       font-size: 0.6rem; font-weight: 600;
-      color: #64748B;
-      background: #F1F5F9;
+      color: var(--text-subtle);
+      background: var(--surface-sunken);
       padding: 2px 6px;
       border-radius: 4px;
     }
   `]
 })
-export class TopbarComponent {
+export class TopbarComponent implements OnInit {
   @Input() currentPage = signal<string>('dashboard');
   @Output() pageChanged = new EventEmitter<string>();
 
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  currentUser = signal<User | null>(null);
-  menuOpen = signal(false);
-  navItems = signal<NavItem[]>([
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'expenses', label: 'List of Data', icon: '📋' },
-    { id: 'loans', label: 'Loan Data', icon: '💸' },
-    { id: 'history', label: 'History', icon: '📜' },
+  protected currentUser = signal<User | null>(null);
+  protected menuOpen = signal(false);
+  protected navItems = signal<NavItem[]>([
+    { id: 'dashboard', label: 'Dashboard',    icon: 'pi-chart-bar' },
+    { id: 'expenses',  label: 'Expenses',     icon: 'pi-list' },
+    { id: 'loans',     label: 'Loans',        icon: 'pi-money-bill' },
+    { id: 'history',   label: 'History',      icon: 'pi-clock' },
   ]);
-  pendingCount = signal(0);
-  openLoanCount = signal(0);
+  private pendingCount = signal(0);
+  private openLoanCount = signal(0);
 
-  demoUsers: User[] = [
-    { id: 1, name: 'Syaeful', username: 'syaeful', email: 'syaeful@texcoms.my.id', role: 'ADMIN', isActive: true, isSystem: false },
-    { id: 2, name: 'Winda', username: 'winda', email: 'winda@texcoms.my.id', role: 'MEMBER', isActive: true, isSystem: false },
-    { id: 3, name: 'Dina', username: 'dina', email: 'dina@texcoms.my.id', role: 'MEMBER', isActive: true, isSystem: false },
+  protected demoUsers: User[] = [
+    { id: 1, name: 'Syaeful', username: 'syaeful', email: 'syaeful@texcoms.my.id', role: 'ADMIN',  isActive: true, isSystem: false },
+    { id: 2, name: 'Winda',   username: 'winda',   email: 'winda@texcoms.my.id',   role: 'MEMBER', isActive: true, isSystem: false },
+    { id: 3, name: 'Dina',    username: 'dina',    email: 'dina@texcoms.my.id',    role: 'MEMBER', isActive: true, isSystem: false },
   ];
 
-  ngOnInit() {
+  ngOnInit(): void {
     const stored = this.authService.getCurrentUser();
     this.currentUser.set(stored || this.demoUsers[0]);
     this.updateNav();
   }
 
-  navigate(id: string) {
+  navigate(id: string): void {
     this.currentPage.set(id);
     this.pageChanged.emit(id);
     this.menuOpen.set(false);
   }
 
-  toggleMenu() {
+  toggleMenu(): void {
     this.menuOpen.update(v => !v);
   }
 
-  switchUser(user: User) {
+  switchUser(user: User): void {
     this.currentUser.set(user);
     this.authService.setCurrentUser(user);
     this.menuOpen.set(false);
   }
 
-  setPending(count: number) {
+  setPending(count: number): void {
     this.pendingCount.set(count);
     this.updateNav();
   }
 
-  setOpenLoans(count: number) {
+  setOpenLoans(count: number): void {
     this.openLoanCount.set(count);
     this.updateNav();
   }
 
-  private updateNav() {
+  private updateNav(): void {
     const isAdmin = this.currentUser()?.role === 'ADMIN';
     this.navItems.set([
-      { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-      { id: 'expenses', label: 'List of Data', icon: '📋', badge: this.pendingCount() },
-      { id: 'loans', label: 'Loan Data', icon: '💸', badge: this.openLoanCount() },
-      { id: 'history', label: 'History', icon: '📜' },
-      ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: '⚙️' }] : []),
+      { id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar' },
+      { id: 'expenses',  label: 'Expenses',  icon: 'pi-list',       badge: this.pendingCount() },
+      { id: 'loans',     label: 'Loans',     icon: 'pi-money-bill', badge: this.openLoanCount() },
+      { id: 'history',   label: 'History',   icon: 'pi-clock' },
+      ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: 'pi-cog' }] : []),
     ]);
   }
 }

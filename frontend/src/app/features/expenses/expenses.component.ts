@@ -120,11 +120,11 @@ const CAT_BADGE: Record<string, { bg: string; fg: string }> = {
         </div>
         <div class="summary-chip chip-amber">
           <span class="summary-label">Pending</span>
-          <span class="summary-val" style="color:#d97706">{{ pendingTotal() > 0 ? fmtThb(pendingTotal()) : '—' }}</span>
+          <span class="summary-val num text-warning">{{ pendingTotal() > 0 ? fmtThb(pendingTotal()) : '—' }}</span>
         </div>
         <div class="summary-chip chip-green">
           <span class="summary-label">Approved</span>
-          <span class="summary-val" style="color:#059669">{{ fmtThb(approvedTotal()) }}</span>
+          <span class="summary-val num text-success">{{ fmtThb(approvedTotal()) }}</span>
         </div>
       </div>
 
