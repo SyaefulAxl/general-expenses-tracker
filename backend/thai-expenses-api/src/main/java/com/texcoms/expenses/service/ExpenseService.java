@@ -54,13 +54,21 @@ public class ExpenseService {
 
     @Transactional(readOnly = true)
     public ExpenseDto getExpenseById(Long id, User requester) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        Expense expense = findActiveExpense(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !expense.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to view this expense.");
         }
         return toDto(expense);
+    }
+
+    private Expense findActiveExpense(Long id) {
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        if (Boolean.TRUE.equals(expense.getIsDeleted())) {
+            throw new ResourceNotFoundException("Expense not found with id: " + id);
+        }
+        return expense;
     }
 
     @Transactional
@@ -85,11 +93,13 @@ public class ExpenseService {
 
     @Transactional
     public ExpenseDto updateExpense(Long id, UpdateExpenseRequest request, User requester) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        Expense expense = findActiveExpense(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !expense.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to update this expense.");
+        }
+        if (expense.getStatus() == ExpenseStatus.APPROVED) {
+            throw new AccessDeniedException("Approved expenses cannot be edited.");
         }
         if (request.getDescription() != null) expense.setDescription(request.getDescription());
         if (request.getAmount() != null) expense.setAmount(request.getAmount());
@@ -106,8 +116,10 @@ public class ExpenseService {
 
     @Transactional
     public ExpenseDto approveExpense(Long id, Long approverId) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        Expense expense = findActiveExpense(id);
+        if (expense.getStatus() != ExpenseStatus.PENDING) {
+            throw new AccessDeniedException("Only PENDING expenses can be approved. Current status: " + expense.getStatus());
+        }
         User approver = userRepository.findById(approverId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + approverId));
         expense.setStatus(ExpenseStatus.APPROVED);
@@ -119,8 +131,10 @@ public class ExpenseService {
 
     @Transactional
     public ExpenseDto rejectExpense(Long id) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        Expense expense = findActiveExpense(id);
+        if (expense.getStatus() != ExpenseStatus.PENDING) {
+            throw new AccessDeniedException("Only PENDING expenses can be rejected. Current status: " + expense.getStatus());
+        }
         expense.setStatus(ExpenseStatus.REJECTED);
         expense = expenseRepository.save(expense);
         return toDto(expense);
@@ -128,8 +142,7 @@ public class ExpenseService {
 
     @Transactional
     public void deleteExpense(Long id, User requester) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        Expense expense = findActiveExpense(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !expense.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to delete this expense.");

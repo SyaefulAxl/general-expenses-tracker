@@ -48,13 +48,20 @@ public class LoanService {
 
     @Transactional(readOnly = true)
     public LoanDto getLoanById(Long id, User requester) {
-        Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        Loan loan = findActiveLoan(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !loan.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to view this loan.");
         }
         return toDto(loan);
+    }
+
+    private Loan findActiveLoan(Long id) {
+        Loan loan = findActiveLoan(id);
+        if (Boolean.TRUE.equals(loan.getIsDeleted())) {
+            throw new ResourceNotFoundException("Loan not found with id: " + id);
+        }
+        return loan;
     }
 
     @Transactional
@@ -77,8 +84,7 @@ public class LoanService {
 
     @Transactional
     public LoanDto updateLoan(Long id, UpdateLoanRequest request, User requester) {
-        Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        Loan loan = findActiveLoan(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !loan.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to update this loan.");
@@ -100,8 +106,7 @@ public class LoanService {
 
     @Transactional
     public void deleteLoan(Long id, User requester) {
-        Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        Loan loan = findActiveLoan(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !loan.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to delete this loan.");
@@ -112,8 +117,7 @@ public class LoanService {
 
     @Transactional
     public LoanDto settleLoan(Long id, User requester) {
-        Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        Loan loan = findActiveLoan(id);
         if (requester.getRole() != UserRole.ADMIN
                 && !loan.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to settle this loan.");
@@ -127,11 +131,21 @@ public class LoanService {
 
     @Transactional
     public RepaymentDto addRepayment(Long loanId, CreateRepaymentRequest request, User requester) {
-        Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + loanId));
+        Loan loan = findActiveLoan(loanId);
         if (requester.getRole() != UserRole.ADMIN
                 && !loan.getUser().getId().equals(requester.getId())) {
             throw new AccessDeniedException("You do not have permission to record a repayment on this loan.");
+        }
+        if (loan.getStatus() == LoanStatus.FULLY_SETTLED) {
+            throw new AccessDeniedException("Loan is already fully settled.");
+        }
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Repayment amount must be greater than zero.");
+        }
+        if (request.getAmount().compareTo(loan.getRemainingAmount()) > 0) {
+            throw new IllegalArgumentException(
+                    "Repayment amount (" + request.getAmount() + ") exceeds remaining balance ("
+                            + loan.getRemainingAmount() + ").");
         }
         User user = userRepository.findById(requester.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + requester.getId()));
