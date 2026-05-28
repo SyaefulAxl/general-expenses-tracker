@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
@@ -105,13 +106,16 @@ public class SumoBaseInitRunner implements ApplicationRunner {
                         ? email.substring(0, email.indexOf('@')).toLowerCase()
                         : email.toLowerCase();
 
-                    // Check if derived username is already taken
-                    try (Statement checkStmt = conn.createStatement();
-                         ResultSet checkRs = checkStmt.executeQuery(
-                             "SELECT id FROM gen_users WHERE app_username = '" + derived.replace("'", "''") + "' AND id != " + id)) {
-                        if (checkRs.next()) {
-                            log.warn("  Skipped seeding id={}: derived username '{}' already taken.", id, derived);
-                            continue;
+                    // Check if derived username is already taken (parameterized to avoid SQL injection)
+                    try (PreparedStatement checkStmt = conn.prepareStatement(
+                             "SELECT id FROM gen_users WHERE app_username = ? AND id != ?")) {
+                        checkStmt.setString(1, derived);
+                        checkStmt.setLong(2, id);
+                        try (ResultSet checkRs = checkStmt.executeQuery()) {
+                            if (checkRs.next()) {
+                                log.warn("  Skipped seeding id={}: derived username '{}' already taken.", id, derived);
+                                continue;
+                            }
                         }
                     }
 

@@ -4,10 +4,12 @@ import com.texcoms.expenses.dto.*;
 import com.texcoms.expenses.entity.Expense;
 import com.texcoms.expenses.entity.User;
 import com.texcoms.expenses.enums.ExpenseStatus;
+import com.texcoms.expenses.enums.UserRole;
 import com.texcoms.expenses.exception.ResourceNotFoundException;
 import com.texcoms.expenses.repository.ExpenseRepository;
 import com.texcoms.expenses.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,9 +53,13 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public ExpenseDto getExpenseById(Long id) {
+    public ExpenseDto getExpenseById(Long id, User requester) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !expense.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to view this expense.");
+        }
         return toDto(expense);
     }
 
@@ -78,9 +84,13 @@ public class ExpenseService {
     }
 
     @Transactional
-    public ExpenseDto updateExpense(Long id, UpdateExpenseRequest request) {
+    public ExpenseDto updateExpense(Long id, UpdateExpenseRequest request, User requester) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !expense.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to update this expense.");
+        }
         if (request.getDescription() != null) expense.setDescription(request.getDescription());
         if (request.getAmount() != null) expense.setAmount(request.getAmount());
         if (request.getCategory() != null) expense.setCategory(request.getCategory());
@@ -117,9 +127,13 @@ public class ExpenseService {
     }
 
     @Transactional
-    public void deleteExpense(Long id) {
+    public void deleteExpense(Long id, User requester) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !expense.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to delete this expense.");
+        }
         expense.setIsDeleted(true);
         expenseRepository.save(expense);
     }

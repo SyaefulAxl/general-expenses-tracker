@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { LoadingComponent } from './shared/components/loading/loading.component';
 import { AuthService } from '@core/services/auth.service';
+import { User } from '@core/models';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -14,30 +15,58 @@ import { filter } from 'rxjs/operators';
     @if (isCheckingAuth()) {
       <app-loading></app-loading>
     } @else if (showShell()) {
-      <div class="app-shell" [class.dark]="isDarkMode()">
+      <div class="app-shell">
+
+        <!-- Mobile backdrop -->
         @if (sidebarOpen()) {
           <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
         }
 
+        <!-- Sidebar -->
         <app-sidebar
-          [currentPage]="currentPage"
+          [currentPage]="currentPage()"
           [sidebarOpen]="sidebarOpen()"
           (pageChanged)="onNavigate($event)"
           (sidebarClosed)="closeSidebar()">
         </app-sidebar>
 
+        <!-- Main area -->
         <div class="main-wrapper">
+
+          <!-- Topbar -->
           <header class="topbar">
             <div class="topbar-left">
-              <button class="hamburger topbar-btn" (click)="toggleSidebar()" aria-label="Toggle menu">
+              <!-- Hamburger (mobile only) -->
+              <button class="hamburger" (click)="toggleSidebar()" aria-label="Open menu">
                 <i class="pi pi-bars"></i>
               </button>
-              <h1 class="topbar-title">{{ getPageTitle() }}</h1>
+              <div class="topbar-page-info">
+                <h1 class="topbar-title">{{ getPageTitle() }}</h1>
+              </div>
             </div>
+
             <div class="topbar-right">
-              <!-- Light-only mode — no theme toggle -->
+              @if (currentUser()) {
+                <div class="topbar-user">
+                  <!-- Avatar initials -->
+                  <div class="topbar-avatar" [attr.aria-label]="currentUser()!.name">
+                    {{ getInitials(currentUser()!.name) }}
+                  </div>
+                  <div class="topbar-user-info">
+                    <span class="topbar-user-name">{{ currentUser()!.name }}</span>
+                    <span
+                      class="badge"
+                      [class.badge-blue]="currentUser()!.role === 'ADMIN'"
+                      [class.badge-gray]="currentUser()!.role !== 'ADMIN'">
+                      {{ currentUser()!.role }}
+                    </span>
+                  </div>
+                </div>
+              }
             </div>
           </header>
+
+          <!-- Page content -->
           <main class="page-content">
             <router-outlet></router-outlet>
           </main>
@@ -48,93 +77,166 @@ import { filter } from 'rxjs/operators';
     }
   `,
   styles: [`
+    /* ── App shell ─────────────────────────────────────────── */
     .app-shell {
       display: flex;
       min-height: 100vh;
+      background: var(--bg-primary);
     }
+
+    /* ── Main wrapper (right of sidebar) ───────────────────── */
     .main-wrapper {
       flex: 1;
-      margin-left: var(--sidebar-width);
+      margin-left: var(--sidebar-width, 260px);
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      transition: margin-left 0.3s ease;
+      min-width: 0;
     }
+
+    /* ── Topbar ────────────────────────────────────────────── */
     .topbar {
-      height: var(--topbar-height);
+      height: var(--topbar-height, 56px);
       background: var(--topbar-bg);
       border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: 0 20px;
       position: sticky;
       top: 0;
       z-index: 50;
+      gap: 16px;
     }
+
     .topbar-left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      min-width: 0;
     }
+
+    .topbar-page-info {
+      min-width: 0;
+    }
+
     .topbar-title {
       font-size: 1rem;
       font-weight: 700;
       color: var(--text-primary);
       margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     .topbar-right {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-shrink: 0;
     }
-    .topbar-btn {
-      width: 36px;
-      height: 36px;
+
+    /* ── Hamburger (mobile only) ───────────────────────────── */
+    .hamburger {
+      display: none;
+      width: 34px;
+      height: 34px;
       border-radius: 8px;
       border: 1px solid var(--border-color);
       background: var(--bg-secondary);
       color: var(--text-muted);
-      display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: background 0.15s, color 0.15s;
       font-size: 1rem;
+      flex-shrink: 0;
     }
-    .topbar-btn:hover {
+
+    .hamburger:hover {
       background: var(--bg-tertiary);
       color: var(--text-primary);
     }
-    .hamburger {
-      display: none;
+
+    /* ── Topbar user chip ──────────────────────────────────── */
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 10px 5px 5px;
+      border-radius: 100px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
     }
+
+    .topbar-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .topbar-user-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .topbar-user-name {
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    /* ── Page content ──────────────────────────────────────── */
     .page-content {
       flex: 1;
       padding: 24px;
     }
+
+    /* ── Sidebar backdrop (mobile) ─────────────────────────── */
     .sidebar-backdrop {
-      display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 90;
+      background: rgba(15, 23, 42, 0.45);
       backdrop-filter: blur(2px);
+      z-index: 90;
     }
 
-    /* Mobile styles */
+    /* ── Mobile ────────────────────────────────────────────── */
     @media (max-width: 767px) {
       .hamburger {
-        display: flex !important;
+        display: flex;
       }
+
       .main-wrapper {
         margin-left: 0;
       }
+
       .page-content {
         padding: 16px;
       }
-      .sidebar-backdrop {
-        display: block;
+
+      .topbar-user-info .badge {
+        display: none;
+      }
+    }
+
+    /* ── Tablet ────────────────────────────────────────────── */
+    @media (min-width: 768px) {
+      .hamburger {
+        display: none !important;
       }
     }
   `]
@@ -144,48 +246,41 @@ export class App implements OnInit {
   private authService = inject(AuthService);
 
   currentPage = signal('dashboard');
-  isDarkMode = signal(false); // Light-only mode — no dark theme toggle
   sidebarOpen = signal(false);
   isCheckingAuth = signal(true);
   showShell = signal(false);
+  currentUser = signal<User | null>(null);
 
   private pageTitles: Record<string, string> = {
     'dashboard': 'Dashboard',
-    'expenses': 'List of Data',
-    'loans': 'Loan Data',
-    'history': 'History',
-    'admin': 'Admin Panel'
+    'expenses':  'Expenses',
+    'loans':     'Loans',
+    'history':   'History',
+    'admin':     'Admin Panel',
   };
 
   ngOnInit() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      this.isDarkMode.set(true);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      this.isDarkMode.set(true);
-    }
-
-    // Initial auth check
+    // Resolve initial auth state
     if (this.authService.isLoggedIn()) {
       this.showShell.set(true);
-      this.isCheckingAuth.set(false);
-    } else {
-      this.showShell.set(false);
-      this.isCheckingAuth.set(false);
+      this.currentUser.set(this.authService.getCurrentUser());
     }
+    this.isCheckingAuth.set(false);
 
+    // Track navigation
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe((e: any) => {
-        const url = (e.urlAfterRedirects || '/').split('/').pop() || 'dashboard';
+      .subscribe((e: NavigationEnd) => {
+        const url = (e.urlAfterRedirects || '/').split('/').filter(Boolean).pop() || 'dashboard';
         this.currentPage.set(url);
         this.sidebarOpen.set(false);
 
-        // Check auth after navigation
-        if (!this.authService.isLoggedIn() && url !== 'login') {
-          this.showShell.set(false);
-        } else if (this.authService.isLoggedIn()) {
+        if (this.authService.isLoggedIn() && url !== 'login') {
           this.showShell.set(true);
+          this.currentUser.set(this.authService.getCurrentUser());
+        } else if (!this.authService.isLoggedIn()) {
+          this.showShell.set(false);
+          this.currentUser.set(null);
         }
       });
   }
@@ -206,5 +301,14 @@ export class App implements OnInit {
 
   getPageTitle(): string {
     return this.pageTitles[this.currentPage()] || 'Dashboard';
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
   }
 }

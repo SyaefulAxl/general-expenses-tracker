@@ -18,12 +18,13 @@ interface NavItem {
   imports: [CommonModule, AvatarComponent],
   template: `
     <aside class="sidebar" [class.sidebar--open]="sidebarOpen">
+
       <!-- Brand -->
       <div class="sidebar-brand">
         <div class="sidebar-brand-mark">฿</div>
         <div class="sidebar-brand-text">
           <span class="sidebar-brand-title">Expenses</span>
-          <span class="sidebar-brand-subtitle">General</span>
+          <span class="sidebar-brand-subtitle">Thailand Trip</span>
         </div>
         <button class="sidebar-close" (click)="close()" aria-label="Close menu">
           <i class="pi pi-times"></i>
@@ -31,14 +32,16 @@ interface NavItem {
       </div>
 
       <!-- Navigation -->
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" role="navigation">
         <div class="sidebar-nav-section">
-          <div class="sidebar-nav-section-title">Menu</div>
+          <div class="sidebar-nav-label">Menu</div>
           @for (item of navItems(); track item.id) {
             <a
               class="sidebar-nav-item"
-              [class.active]="currentPage() === item.id"
-              (click)="navigate(item.id)">
+              [class.active]="currentPage === item.id"
+              (click)="navigate(item.id)"
+              role="menuitem"
+              [attr.aria-current]="currentPage === item.id ? 'page' : null">
               <i [class]="'pi ' + item.icon" class="nav-icon"></i>
               <span class="nav-label">{{ item.label }}</span>
               @if (item.badge && item.badge > 0) {
@@ -49,13 +52,18 @@ interface NavItem {
         </div>
       </nav>
 
-      <!-- User section -->
+      <!-- User / Footer -->
       <div class="sidebar-footer">
-        <div class="sidebar-user-info">
+        <div class="sidebar-user">
           <app-avatar [name]="currentUser()?.name || ''"></app-avatar>
-          <div class="sidebar-user-details">
+          <div class="sidebar-user-info">
             <div class="sidebar-user-name">{{ currentUser()?.name || 'Guest' }}</div>
-            <div class="sidebar-user-role">{{ currentUser()?.role || '—' }}</div>
+            <span
+              class="badge"
+              [class.badge-blue]="currentUser()?.role === 'ADMIN'"
+              [class.badge-gray]="currentUser()?.role !== 'ADMIN'">
+              {{ currentUser()?.role || 'MEMBER' }}
+            </span>
           </div>
         </div>
         <button class="logout-btn" (click)="onLogout()">
@@ -66,10 +74,11 @@ interface NavItem {
     </aside>
   `,
   styles: [`
+    /* ── Sidebar shell ─────────────────────────────────────── */
     .sidebar {
-      width: var(--sidebar-width);
+      width: var(--sidebar-width, 260px);
       background: var(--sidebar-bg);
-      border-right: 1px solid var(--sidebar-border, var(--border-color));
+      border-right: 1px solid var(--sidebar-border);
       display: flex;
       flex-direction: column;
       position: fixed;
@@ -78,80 +87,102 @@ interface NavItem {
       bottom: 0;
       z-index: 100;
       transform: translateX(-100%);
-      transition: transform 0.3s ease, background-color 0.2s ease;
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
     }
+
     .sidebar--open {
       transform: translateX(0);
     }
+
+    /* ── Brand row ─────────────────────────────────────────── */
     .sidebar-brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 20px;
-      border-bottom: 1px solid var(--sidebar-border, var(--border-subtle));
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--sidebar-border);
+      min-height: var(--topbar-height, 56px);
+      box-sizing: border-box;
     }
+
     .sidebar-brand-mark {
       width: 36px;
       height: 36px;
-      border-radius: 8px;
-      background: var(--accent-primary);
-      color: white;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 800;
       flex-shrink: 0;
+      letter-spacing: -0.02em;
     }
+
     .sidebar-brand-text {
       display: flex;
       flex-direction: column;
+      flex: 1;
+      min-width: 0;
     }
+
     .sidebar-brand-title {
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--text-primary);
       line-height: 1.2;
     }
+
     .sidebar-brand-subtitle {
-      font-weight: 400;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
+      margin-top: 1px;
     }
+
     .sidebar-close {
       display: none;
-      margin-left: auto;
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 6px;
-      border: 1px solid var(--sidebar-border, var(--border-color));
+      border: 1px solid var(--sidebar-border);
       background: var(--sidebar-hover-bg);
       color: var(--sidebar-text);
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       cursor: pointer;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
+      margin-left: auto;
+      transition: background 0.15s;
     }
+
+    .sidebar-close:hover {
+      background: var(--bg-tertiary);
+    }
+
+    /* ── Navigation ────────────────────────────────────────── */
     .sidebar-nav {
       flex: 1;
-      padding: 16px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      padding: 12px;
       overflow-y: auto;
     }
+
     .sidebar-nav-section {
-      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .sidebar-nav-section-title {
-      font-size: 0.65rem;
+
+    .sidebar-nav-label {
+      font-size: 0.62rem;
       font-weight: 600;
-      color: var(--sidebar-text);
+      color: var(--text-subtle);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 8px 12px 4px;
-      opacity: 0.7;
+      letter-spacing: 0.09em;
+      padding: 8px 12px 6px;
     }
+
     .sidebar-nav-item {
       display: flex;
       align-items: center;
@@ -162,52 +193,76 @@ interface NavItem {
       font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: background 0.15s, color 0.15s;
+      border-left: 3px solid transparent;
+      text-decoration: none;
+      user-select: none;
     }
+
     .sidebar-nav-item:hover {
       background: var(--sidebar-hover-bg);
       color: var(--sidebar-text-hover);
     }
+
     .sidebar-nav-item.active {
       background: var(--sidebar-active-bg);
       color: var(--sidebar-text-active);
+      border-left-color: #2563eb;
+      font-weight: 600;
     }
+
     .nav-icon {
-      font-size: 1rem;
-      width: 20px;
+      font-size: 0.95rem;
+      width: 18px;
       text-align: center;
       flex-shrink: 0;
     }
+
     .nav-label {
       flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     .nav-badge {
       background: var(--accent-danger);
-      color: white;
+      color: #ffffff;
       border-radius: 9999px;
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       font-weight: 700;
       padding: 1px 6px;
       min-width: 18px;
       text-align: center;
+      flex-shrink: 0;
     }
+
+    /* ── Footer / User section ─────────────────────────────── */
     .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid var(--sidebar-border, var(--border-color));
+      padding: 14px;
+      border-top: 1px solid var(--sidebar-border);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
-    .sidebar-user-info {
+
+    .sidebar-user {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px;
+      padding: 8px 8px;
+      border-radius: 8px;
+      background: var(--bg-tertiary);
     }
-    .sidebar-user-details {
+
+    .sidebar-user-info {
       flex: 1;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
+
     .sidebar-user-name {
       font-size: 0.8rem;
       font-weight: 600;
@@ -216,31 +271,31 @@ interface NavItem {
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .sidebar-user-role {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-    }
+
     .logout-btn {
       display: flex;
       align-items: center;
       gap: 8px;
       width: 100%;
-      padding: 10px 12px;
+      padding: 9px 12px;
       border-radius: 8px;
       border: none;
       background: transparent;
       color: var(--sidebar-text);
-      font-size: 0.85rem;
+      font-family: inherit;
+      font-size: 0.825rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .logout-btn:hover {
-      background: rgba(220, 38, 38, 0.15);
-      color: #f87171;
+      transition: background 0.15s, color 0.15s;
+      text-align: left;
     }
 
-    /* Desktop: always visible */
+    .logout-btn:hover {
+      background: #fef2f2;
+      color: #ef4444;
+    }
+
+    /* ── Desktop: always visible ───────────────────────────── */
     @media (min-width: 768px) {
       .sidebar {
         transform: translateX(0) !important;
@@ -250,7 +305,7 @@ interface NavItem {
       }
     }
 
-    /* Mobile: hamburger shows close button */
+    /* ── Mobile: slide-in + show close btn ────────────────── */
     @media (max-width: 767px) {
       .sidebar-close {
         display: flex;
@@ -259,7 +314,7 @@ interface NavItem {
   `]
 })
 export class SidebarComponent implements OnInit {
-  @Input() currentPage = signal<string>('dashboard');
+  @Input() currentPage: string = 'dashboard';
   @Input() sidebarOpen = false;
   @Output() pageChanged = new EventEmitter<string>();
   @Output() sidebarClosed = new EventEmitter<void>();
@@ -268,12 +323,7 @@ export class SidebarComponent implements OnInit {
   private router = inject(Router);
 
   currentUser = signal<User | null>(null);
-  navItems = signal<NavItem[]>([
-    { id: 'dashboard', label: 'Dashboard', icon: 'pi-home' },
-    { id: 'expenses', label: 'List of Data', icon: 'pi-wallet' },
-    { id: 'loans', label: 'Loan Data', icon: 'pi-history' },
-    { id: 'history', label: 'History', icon: 'pi-clock' },
-  ]);
+  navItems = signal<NavItem[]>([]);
   pendingCount = signal(0);
   openLoanCount = signal(0);
 
@@ -284,8 +334,8 @@ export class SidebarComponent implements OnInit {
   }
 
   navigate(id: string) {
-    this.currentPage.set(id);
     this.pageChanged.emit(id);
+    this.router.navigate(['/', id]);
   }
 
   close() {
@@ -310,11 +360,11 @@ export class SidebarComponent implements OnInit {
   private updateNav() {
     const isAdmin = this.currentUser()?.role === 'ADMIN';
     this.navItems.set([
-      { id: 'dashboard', label: 'Dashboard', icon: 'pi-home' },
-      { id: 'expenses', label: 'List of Data', icon: 'pi-wallet', badge: this.pendingCount() },
-      { id: 'loans', label: 'Loan Data', icon: 'pi-history', badge: this.openLoanCount() },
-      { id: 'history', label: 'History', icon: 'pi-clock' },
-      ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: 'pi-chart-bar' }] : []),
+      { id: 'dashboard', label: 'Dashboard',  icon: 'pi-home'        },
+      { id: 'expenses',  label: 'Expenses',   icon: 'pi-wallet',     badge: this.pendingCount()   },
+      { id: 'loans',     label: 'Loans',      icon: 'pi-credit-card', badge: this.openLoanCount() },
+      { id: 'history',   label: 'History',    icon: 'pi-clock'       },
+      ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: 'pi-users' }] : []),
     ]);
   }
 }

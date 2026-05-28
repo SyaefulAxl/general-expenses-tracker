@@ -3,11 +3,13 @@ package com.texcoms.expenses.service;
 import com.texcoms.expenses.dto.*;
 import com.texcoms.expenses.entity.*;
 import com.texcoms.expenses.enums.LoanStatus;
+import com.texcoms.expenses.enums.UserRole;
 import com.texcoms.expenses.exception.ResourceNotFoundException;
 import com.texcoms.expenses.repository.LoanRepository;
 import com.texcoms.expenses.repository.RepaymentRepository;
 import com.texcoms.expenses.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,9 +47,13 @@ public class LoanService {
     }
 
     @Transactional(readOnly = true)
-    public LoanDto getLoanById(Long id) {
+    public LoanDto getLoanById(Long id, User requester) {
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !loan.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to view this loan.");
+        }
         return toDto(loan);
     }
 
@@ -70,9 +76,13 @@ public class LoanService {
     }
 
     @Transactional
-    public LoanDto updateLoan(Long id, UpdateLoanRequest request) {
+    public LoanDto updateLoan(Long id, UpdateLoanRequest request, User requester) {
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !loan.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to update this loan.");
+        }
         if (request.getPersonName() != null) loan.setPersonName(request.getPersonName());
         if (request.getType() != null) loan.setType(request.getType());
         if (request.getLoanDate() != null) loan.setLoanDate(request.getLoanDate());
@@ -89,17 +99,25 @@ public class LoanService {
     }
 
     @Transactional
-    public void deleteLoan(Long id) {
+    public void deleteLoan(Long id, User requester) {
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !loan.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to delete this loan.");
+        }
         loan.setIsDeleted(true);
         loanRepository.save(loan);
     }
 
     @Transactional
-    public LoanDto settleLoan(Long id) {
+    public LoanDto settleLoan(Long id, User requester) {
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        if (requester.getRole() != UserRole.ADMIN
+                && !loan.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to settle this loan.");
+        }
         loan.setStatus(LoanStatus.FULLY_SETTLED);
         loan.setRemainingAmount(BigDecimal.ZERO);
         loan.setSettledDate(java.time.LocalDate.now());
@@ -108,11 +126,15 @@ public class LoanService {
     }
 
     @Transactional
-    public RepaymentDto addRepayment(Long loanId, CreateRepaymentRequest request, Long userId) {
+    public RepaymentDto addRepayment(Long loanId, CreateRepaymentRequest request, User requester) {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + loanId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        if (requester.getRole() != UserRole.ADMIN
+                && !loan.getUser().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("You do not have permission to record a repayment on this loan.");
+        }
+        User user = userRepository.findById(requester.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + requester.getId()));
         Repayment repayment = Repayment.builder()
                 .amount(request.getAmount())
                 .repaymentDate(request.getRepaymentDate())

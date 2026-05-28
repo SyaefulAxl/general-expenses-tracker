@@ -9,7 +9,7 @@ type Status = ExpenseStatus | LoanStatus | string;
   standalone: true,
   imports: [CommonModule],
   template: `
-    <span class="badge" [ngClass]="badgeClass">{{ label }}</span>
+    <span class="badge" [ngStyle]="badgeStyle">{{ label }}</span>
   `,
   styles: [`
     .badge {
@@ -17,33 +17,29 @@ type Status = ExpenseStatus | LoanStatus | string;
       align-items: center;
       border-radius: 9999px;
       font-size: 0.65rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      letter-spacing: 0.03em;
+      font-weight: 700;
+      padding: 3px 9px;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
+      white-space: nowrap;
     }
-    .badge-green { background: var(--accent-success-subtle); color: var(--accent-success); }
-    .badge-red { background: var(--accent-danger-subtle); color: var(--accent-danger); }
-    .badge-yellow { background: var(--accent-warning-subtle); color: var(--accent-warning); }
-    .badge-blue { background: var(--accent-primary-subtle); color: var(--accent-primary); }
-    .badge-gray { background: var(--bg-tertiary); color: var(--text-muted); }
   `]
 })
 export class StatusBadgeComponent {
   @Input() status: Status = 'DRAFT';
 
-  get badgeClass(): string {
-    const map: Record<string, string> = {
-      'APPROVED': 'badge-green',
-      'FULLY_SETTLED': 'badge-green',
-      'PENDING': 'badge-yellow',
-      'PARTIAL': 'badge-yellow',
-      'REJECTED': 'badge-red',
-      'DRAFT': 'badge-gray',
-      'UNSETTLED': 'badge-blue',
-      'OVERPAID': 'badge-red',
+  get badgeStyle(): Record<string, string> {
+    const styles: Record<string, Record<string, string>> = {
+      'APPROVED':      { background: '#dcfce7', color: '#16a34a' },
+      'FULLY_SETTLED': { background: '#dcfce7', color: '#16a34a' },
+      'PENDING':       { background: '#fef9c3', color: '#ca8a04' },
+      'PARTIAL':       { background: '#fdf4ff', color: '#9333ea' },
+      'DRAFT':         { background: '#f1f5f9', color: '#64748b' },
+      'REJECTED':      { background: '#fee2e2', color: '#dc2626' },
+      'UNSETTLED':     { background: '#fee2e2', color: '#dc2626' },
+      'OVERPAID':      { background: '#fff7ed', color: '#ea580c' },
     };
-    return map[this.status] || 'badge-gray';
+    return styles[this.status] || { background: '#f1f5f9', color: '#64748b' };
   }
 
   get label(): string {

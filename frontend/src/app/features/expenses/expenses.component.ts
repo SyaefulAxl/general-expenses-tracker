@@ -1,31 +1,23 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
-import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
-import { AvatarComponent } from '@shared/components/avatar/avatar.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { MockDataService } from '@core/services/mock-data.service';
+import { AuthService } from '@core/services/auth.service';
 import { Expense, User, ExpenseStatus } from '@core/models';
+import { fmtThb, fmtUsd, fmtIdr, fmtDate, fmtDateTime, THB_TO_USD, THB_TO_IDR } from '@core/utils/currency.utils';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-function fmtThb(v: number): string {
-  return '฿' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-interface ExpenseFormData {
+interface ExpenseForm {
   id?: number;
   expenseDate: Date | null;
   toko: string;
@@ -37,799 +29,789 @@ interface ExpenseFormData {
   status: ExpenseStatus;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Transport': 'bg-blue-100 text-blue-700',
-  'Food': 'bg-orange-100 text-orange-700',
-  'Accommodation': 'bg-purple-100 text-purple-700',
-  'Entertainment': 'bg-pink-100 text-pink-700',
-  'Other': 'bg-gray-100 text-gray-700',
+const EMPTY_FORM: ExpenseForm = {
+  expenseDate: new Date(),
+  toko: '',
+  description: '',
+  amount: null,
+  category: 'Food',
+  source: 'Cash',
+  shared: false,
+  status: 'PENDING',
 };
 
-const STATUS_OPTIONS = [
-  { label: 'All', value: 'ALL' },
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Pending', value: 'PENDING' },
-  { label: 'Approved', value: 'APPROVED' },
-  { label: 'Rejected', value: 'REJECTED' },
-];
+const CATEGORIES = ['Transport', 'Food', 'Accommodation', 'Entertainment', 'Other'];
+const SOURCES    = ['Cash', 'Credit Card', 'Debit Card', 'Transfer', 'Winda Cash'];
+const STATUSES: ExpenseStatus[] = ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED'];
 
-const CATEGORY_OPTIONS = [
-  { label: 'Transport', value: 'Transport' },
-  { label: 'Food', value: 'Food' },
-  { label: 'Accommodation', value: 'Accommodation' },
-  { label: 'Entertainment', value: 'Entertainment' },
-  { label: 'Other', value: 'Other' },
-];
-
-const FORM_STATUS_OPTIONS = [
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Pending', value: 'PENDING' },
-];
+const CAT_BADGE: Record<string, { bg: string; fg: string }> = {
+  Transport:     { bg: '#eff6ff', fg: '#1d4ed8' },
+  Food:          { bg: '#fff7ed', fg: '#c2410c' },
+  Accommodation: { bg: '#f5f3ff', fg: '#6d28d9' },
+  Entertainment: { bg: '#fdf2f8', fg: '#be185d' },
+  Other:         { bg: '#f8fafc', fg: '#475569' },
+};
 
 @Component({
   selector: 'app-expenses',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
-    TableModule,
-    ButtonModule,
-    DialogModule,
-    InputTextModule,
-    InputNumberModule,
-    SelectModule,
-    DatePickerModule,
-    CheckboxModule,
-    TagModule,
-    TooltipModule,
-    AvatarComponent,
+    CommonModule, FormsModule,
+    DialogModule, ButtonModule, InputTextModule, InputNumberModule,
+    SelectModule, DatePickerModule, CheckboxModule, ToastModule, TooltipModule,
     StatusBadgeComponent,
   ],
   providers: [MessageService],
   template: `
-    <div class="expenses-wrap">
+    <p-toast position="top-right" [life]="3000"></p-toast>
 
-      <!-- ── Page header ──────────────────────────────────────────────── -->
-      <header class="page-header">
+    <div class="exp-wrap">
+
+      <!-- ── Header ──────────────────────────────────────────── -->
+      <div class="exp-header">
         <div>
-          <h1 class="page-title">List of Data</h1>
-          <p class="page-sub">Thailand Expenses Tracker</p>
+          <h1 class="exp-title">Expenses</h1>
+          <p class="exp-sub">{{ filteredExpenses().length }} of {{ allExpenses().length }} expenses</p>
         </div>
-        <button pButton type="button" label="+ New Expense" class="p-button-primary" (click)="openNewDialog()"></button>
-      </header>
-
-      <!-- ── Filter bar ───────────────────────────────────────────────── -->
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label class="filter-label">Status</label>
-          <p-select
-            [options]="STATUS_OPTIONS"
-            [ngModel]="filterStatus()"
-            (ngModelChange)="filterStatus.set($event)"
-            optionLabel="label"
-            optionValue="value"
-            styleClass="filter-dropdown">
-          </p-select>
-        </div>
-
-        <div class="filter-group">
-          <label class="filter-label">Recorder</label>
-          <p-select
-            [options]="userDropdownOptions"
-            [ngModel]="filterRecorderId()"
-            (ngModelChange)="filterRecorderId.set($event)"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="All Users"
-            styleClass="filter-dropdown">
-          </p-select>
-        </div>
-
-        <div class="filter-group">
-          <label class="filter-label">Date Range</label>
-          <p-datepicker
-            [ngModel]="filterDateRange()"
-            (ngModelChange)="filterDateRange.set($event)"
-            selectionMode="range"
-            [showIcon]="true"
-            dateFormat="dd M yy"
-            placeholder="Select date range"
-            styleClass="filter-calendar">
-          </p-datepicker>
-        </div>
-
-        <button pButton type="button" label="Clear" class="p-button-outlined p-button-secondary" (click)="clearFilters()"></button>
+        <button class="btn-add" (click)="openAddDialog()">
+          <span>＋</span> Add Expense
+        </button>
       </div>
 
-      <!-- ── Summary bar ──────────────────────────────────────────────── -->
-      <div class="summary-bar">
-        <div class="summary-item">
-          <span class="summary-label">Total Records</span>
-          <span class="summary-value">{{ filteredExpenses().length }}</span>
+      <!-- ── Filters ──────────────────────────────────────────── -->
+      <div class="filters-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Search description, store…"
+            [(ngModel)]="searchQ"
+            (ngModelChange)="onSearch($event)" />
         </div>
-        <div class="summary-item">
-          <span class="summary-label">Total Amount</span>
-          <span class="summary-value">{{ fmtThb(totalFilteredAmount()) }}</span>
+        <div class="filter-pills">
+          @for (cat of ['ALL', ...cats]; track cat) {
+            <button
+              class="filter-pill"
+              [class.active]="filterCat() === cat"
+              (click)="filterCat.set(cat)">
+              {{ cat }}
+            </button>
+          }
+        </div>
+        <div class="filter-pills">
+          @for (st of ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'DRAFT']; track st) {
+            <button
+              class="filter-pill"
+              [class.active]="filterStatus() === st"
+              (click)="filterStatus.set(st)">
+              {{ st }}
+            </button>
+          }
         </div>
       </div>
 
-      <!-- ── PrimeNG Table ────────────────────────────────────────────── -->
+      <!-- ── Summary bar ──────────────────────────────────────── -->
+      <div class="summary-strip">
+        <div class="summary-chip">
+          <span class="summary-label">Total</span>
+          <span class="summary-val">{{ fmtThb(filteredTotal()) }}</span>
+          <span class="summary-sub">{{ fmtUsd(filteredTotal()) }} · {{ fmtIdr(filteredTotal()) }}</span>
+        </div>
+        <div class="summary-chip chip-amber">
+          <span class="summary-label">Pending</span>
+          <span class="summary-val" style="color:#d97706">{{ pendingTotal() > 0 ? fmtThb(pendingTotal()) : '—' }}</span>
+        </div>
+        <div class="summary-chip chip-green">
+          <span class="summary-label">Approved</span>
+          <span class="summary-val" style="color:#059669">{{ fmtThb(approvedTotal()) }}</span>
+        </div>
+      </div>
+
+      <!-- ── Table ────────────────────────────────────────────── -->
       <div class="table-card">
-        <p-table
-          [value]="filteredExpenses()"
-          [paginator]="true"
-          [rows]="10"
-          [rowsPerPageOptions]="[5, 10, 25, 50]"
-          [showCurrentPageReport]="true"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          styleClass="p-datatable-sm p-datatable-striped">
-
-          <ng-template pTemplate="header">
-            <tr>
-              <th pSortableColumn="expenseDate" style="width: 120px;">Date <p-sortIcon field="expenseDate"></p-sortIcon></th>
-              <th pSortableColumn="toko">Toko <p-sortIcon field="toko"></p-sortIcon></th>
-              <th pSortableColumn="description">Description <p-sortIcon field="description"></p-sortIcon></th>
-              <th pSortableColumn="category" style="width: 130px;">Category <p-sortIcon field="category"></p-sortIcon></th>
-              <th pSortableColumn="amount" style="width: 130px; text-align: right;">Amount <p-sortIcon field="amount"></p-sortIcon></th>
-              <th pSortableColumn="recorderId" style="width: 130px;">Recorder <p-sortIcon field="recorderId"></p-sortIcon></th>
-              <th pSortableColumn="status" style="width: 110px;">Status <p-sortIcon field="status"></p-sortIcon></th>
-              <th style="width: 120px; text-align: center;">Actions</th>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="body" let-exp>
-            <tr>
-              <!-- Date -->
-              <td class="cell-date">{{ fmtDate(exp.expenseDate) }}</td>
-
-              <!-- Toko -->
-              <td class="cell-toko">
-                <span class="toko-name">{{ exp.toko }}</span>
-              </td>
-
-              <!-- Description -->
-              <td class="cell-desc">
-                <span class="desc-text" [pTooltip]="exp.description" pTooltipPosition="top">{{ exp.description }}</span>
-              </td>
-
-              <!-- Category pill -->
-              <td class="cell-cat">
-                <span class="cat-pill" [ngClass]="getCategoryClass(exp.category)">{{ exp.category }}</span>
-              </td>
-
-              <!-- Amount -->
-              <td class="cell-amt text-right">
-                <span class="amt-text">{{ fmtThb(exp.amount) }}</span>
-              </td>
-
-              <!-- Recorder -->
-              <td class="cell-rec">
-                <div class="rec-info">
-                  <app-avatar [name]="getUserName(exp.recorderId)"></app-avatar>
-                  <span class="rec-name">{{ getUserName(exp.recorderId) }}</span>
-                </div>
-              </td>
-
-              <!-- Status -->
-              <td class="cell-status">
-                <app-status-badge [status]="exp.status"></app-status-badge>
-              </td>
-
-              <!-- Actions -->
-              <td class="cell-actions">
-                @if (canShowActions(exp)) {
-                <div class="action-buttons">
-                  <button
-                    pButton
-                    type="button"
-                    icon="pi pi-check"
-                    class="p-button-success p-button-sm p-button-rounded p-button-text"
-                    pTooltip="Approve"
-                    pTooltipPosition="top"
-                    (click)="approveExpense(exp)">
-                  </button>
-                  <button
-                    pButton
-                    type="button"
-                    icon="pi pi-times"
-                    class="p-button-danger p-button-sm p-button-rounded p-button-text"
-                    pTooltip="Reject"
-                    pTooltipPosition="top"
-                    (click)="rejectExpense(exp)">
-                  </button>
-                  <button
-                    pButton
-                    type="button"
-                    icon="pi pi-trash"
-                    class="p-button-warning p-button-sm p-button-rounded p-button-text"
-                    pTooltip="Delete"
-                    pTooltipPosition="top"
-                    (click)="deleteExpense(exp)">
-                  </button>
-                </div>
-                }
-              </td>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="8" class="empty-cell">
-                <div class="empty-state">
-                  <span class="empty-icon">📋</span>
-                  <span class="empty-text">No expenses found</span>
-                </div>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <div class="table-scroll">
+          <table class="exp-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Store</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th class="col-amount">Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (exp of pagedExpenses(); track exp.id) {
+                <tr (click)="selectExp(exp)" class="exp-row">
+                  <td class="col-date">{{ fmtDate(exp.expenseDate) }}</td>
+                  <td class="col-store">{{ exp.toko || '—' }}</td>
+                  <td class="col-desc">
+                    <div class="desc-main">{{ exp.description }}</div>
+                    @if (exp.shared) { <span class="shared-chip">Shared</span> }
+                  </td>
+                  <td>
+                    <span class="cat-chip"
+                      [style.background]="catBg(exp.category)"
+                      [style.color]="catFg(exp.category)">
+                      {{ exp.category }}
+                    </span>
+                  </td>
+                  <td class="col-amount">
+                    <div class="amt-main">{{ fmtThb(exp.amount) }}</div>
+                    <div class="amt-sub">{{ fmtUsd(exp.amount) }} · {{ fmtIdr(exp.amount) }}</div>
+                  </td>
+                  <td><app-status-badge [status]="exp.status"></app-status-badge></td>
+                  <td class="col-actions" (click)="$event.stopPropagation()">
+                    <button class="act-btn act-edit" (click)="openEditDialog(exp)" title="Edit">✏</button>
+                    @if (isAdmin()) {
+                      @if (exp.status === 'PENDING') {
+                        <button class="act-btn act-ok" (click)="approve(exp)" title="Approve">✓</button>
+                        <button class="act-btn act-rej" (click)="reject(exp)" title="Reject">✕</button>
+                      }
+                    }
+                    <button class="act-btn act-del" (click)="confirmDelete(exp)" title="Delete">🗑</button>
+                  </td>
+                </tr>
+              }
+              @if (filteredExpenses().length === 0) {
+                <tr>
+                  <td colspan="7" class="empty-row">
+                    <div class="empty-state">
+                      <div class="empty-icon">📋</div>
+                      <div class="empty-text">No expenses found</div>
+                      <div class="empty-sub">Try adjusting your filters or add a new expense</div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination -->
+        @if (totalPages() > 1) {
+          <div class="pagination">
+            <button class="page-btn" [disabled]="currentPage() === 0" (click)="prevPage()">← Prev</button>
+            <span class="page-info">Page {{ currentPage() + 1 }} of {{ totalPages() }}</span>
+            <button class="page-btn" [disabled]="currentPage() >= totalPages() - 1" (click)="nextPage()">Next →</button>
+          </div>
+        }
       </div>
 
-      <!-- ── Add/Edit Dialog ───────────────────────────────────────────── -->
-      <p-dialog
-        [(visible)]="dialogVisible"
-        [header]="dialogMode === 'new' ? 'New Expense' : 'Edit Expense'"
-        [modal]="true"
-        [style]="{ width: '500px' }"
-        [closable]="true"
-        [draggable]="false"
-        [resizable]="false">
+    </div>
 
-        <div class="dialog-form">
-          <!-- Date -->
-          <div class="form-field">
-            <label for="expDate" class="form-label">Date</label>
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- Add / Edit Dialog                                         -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <p-dialog
+      [visible]="dialogVisible()"
+      (visibleChange)="dialogVisible.set($event)"
+      [header]="editingId() ? 'Edit Expense' : 'Add Expense'"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{ width: '520px' }"
+      appendTo="body">
+
+      <div class="dialog-body">
+        <!-- Date + Store row -->
+        <div class="form-row">
+          <div class="form-grp">
+            <label class="form-lbl">Date <span class="req">*</span></label>
             <p-datepicker
-              id="expDate"
-              [(ngModel)]="formData.expenseDate"
-              dateFormat="dd M yy"
+              [(ngModel)]="form.expenseDate"
               [showIcon]="true"
+              dateFormat="yy-mm-dd"
               placeholder="Select date"
               styleClass="w-full">
             </p-datepicker>
           </div>
-
-          <!-- Toko -->
-          <div class="form-field">
-            <label for="toko" class="form-label">Toko (Store)</label>
-            <input
-              pInputText
-              id="toko"
-              [(ngModel)]="formData.toko"
-              placeholder="Enter store name"
-              class="w-full">
+          <div class="form-grp">
+            <label class="form-lbl">Store / Toko</label>
+            <input class="form-inp" type="text" [(ngModel)]="form.toko" placeholder="e.g. Seven 11" />
           </div>
+        </div>
 
-          <!-- Description -->
-          <div class="form-field">
-            <label for="desc" class="form-label">Description</label>
-            <textarea
-              pInputText
-              id="desc"
-              [(ngModel)]="formData.description"
-              placeholder="Enter description"
-              rows="3"
-              class="w-full">
-            </textarea>
-          </div>
+        <!-- Description -->
+        <div class="form-grp">
+          <label class="form-lbl">Description <span class="req">*</span></label>
+          <input class="form-inp" type="text" [(ngModel)]="form.description" placeholder="What was this expense for?" />
+        </div>
 
-          <!-- Amount -->
-          <div class="form-field">
-            <label for="amount" class="form-label">Amount (THB)</label>
-            <p-inputNumber
-              id="amount"
-              [(ngModel)]="formData.amount"
-              mode="currency"
-              currency="THB"
-              locale="en-US"
+        <!-- Amount + Category row -->
+        <div class="form-row">
+          <div class="form-grp">
+            <label class="form-lbl">Amount (THB) <span class="req">*</span></label>
+            <p-inputnumber
+              [(ngModel)]="form.amount"
+              mode="decimal"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
               placeholder="0.00"
-              styleClass="w-full">
-            </p-inputNumber>
+              styleClass="w-full"
+              (ngModelChange)="onAmountChange()">
+            </p-inputnumber>
+            <!-- Live conversion -->
+            @if (form.amount && form.amount > 0) {
+              <div class="amount-preview">
+                <span class="prev-pill prev-usd">≈ {{ fmtUsd(form.amount) }}</span>
+                <span class="prev-pill prev-idr">≈ {{ fmtIdr(form.amount) }}</span>
+              </div>
+            }
           </div>
-
-          <!-- Category -->
-          <div class="form-field">
-            <label for="cat" class="form-label">Category</label>
+          <div class="form-grp">
+            <label class="form-lbl">Category <span class="req">*</span></label>
             <p-select
-              id="cat"
-              [(ngModel)]="formData.category"
-              [options]="CATEGORY_OPTIONS"
-              optionLabel="label"
-              optionValue="value"
+              [(ngModel)]="form.category"
+              [options]="categoryOptions"
               placeholder="Select category"
-              styleClass="w-full">
-            </p-select>
-          </div>
-
-          <!-- Source -->
-          <div class="form-field">
-            <label for="source" class="form-label">Source (Who paid cash)</label>
-            <input
-              pInputText
-              id="source"
-              [(ngModel)]="formData.source"
-              placeholder="Enter source"
-              class="w-full">
-          </div>
-
-          <!-- Shared -->
-          <div class="form-field form-field-check">
-            <p-checkbox
-              [(ngModel)]="formData.shared"
-              [binary]="true"
-              inputId="shared">
-            </p-checkbox>
-            <label for="shared" class="form-label-check">Shared expense</label>
-          </div>
-
-          <!-- Status -->
-          <div class="form-field">
-            <label for="status" class="form-label">Status</label>
-            <p-select
-              id="status"
-              [(ngModel)]="formData.status"
-              [options]="[{label:'Draft',value:'DRAFT'},{label:'Pending',value:'PENDING'}]"
-              optionLabel="label"
-              optionValue="value"
               styleClass="w-full">
             </p-select>
           </div>
         </div>
 
-        <ng-template pTemplate="footer">
-          <button pButton type="button" label="Cancel" class="p-button-text" (click)="dialogVisible = false"></button>
-          <button pButton type="button" label="Save" class="p-button-primary" (click)="saveExpense()"></button>
-        </ng-template>
-      </p-dialog>
+        <!-- Source + Status row -->
+        <div class="form-row">
+          <div class="form-grp">
+            <label class="form-lbl">Payment Source</label>
+            <p-select
+              [(ngModel)]="form.source"
+              [options]="sourceOptions"
+              placeholder="Select source"
+              styleClass="w-full">
+            </p-select>
+          </div>
+          <div class="form-grp">
+            <label class="form-lbl">Status</label>
+            <p-select
+              [(ngModel)]="form.status"
+              [options]="statusOptions"
+              placeholder="Select status"
+              styleClass="w-full">
+            </p-select>
+          </div>
+        </div>
 
-    </div>
+        <!-- Shared -->
+        <div class="form-check">
+          <p-checkbox [(ngModel)]="form.shared" [binary]="true" inputId="shared"></p-checkbox>
+          <label for="shared" class="check-lbl">This expense is shared among team members</label>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <button class="dlg-btn dlg-cancel" (click)="closeDialog()">Cancel</button>
+        <button class="dlg-btn dlg-save" (click)="saveExpense()" [disabled]="!isFormValid()">
+          {{ editingId() ? 'Update Expense' : 'Add Expense' }}
+        </button>
+      </ng-template>
+    </p-dialog>
+
+    <!-- ── Expense Detail Side Panel ──────────────────────────── -->
+    @if (selectedExp()) {
+      <div class="panel-backdrop" (click)="selectedExp.set(null)"></div>
+      <div class="side-panel open">
+        <div class="side-panel-header">
+          <div>
+            <h3 class="panel-title">Expense Detail</h3>
+            <p class="panel-sub">ID #{{ selectedExp()!.id }}</p>
+          </div>
+          <button class="panel-close" (click)="selectedExp.set(null)">✕</button>
+        </div>
+        <div class="side-panel-body">
+          <div class="detail-grid">
+            <div class="detail-row">
+              <span class="detail-lbl">Date</span>
+              <span class="detail-val">{{ fmtDate(selectedExp()!.expenseDate) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Store</span>
+              <span class="detail-val">{{ selectedExp()!.toko || '—' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Description</span>
+              <span class="detail-val">{{ selectedExp()!.description }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Category</span>
+              <span class="cat-chip"
+                [style.background]="catBg(selectedExp()!.category)"
+                [style.color]="catFg(selectedExp()!.category)">
+                {{ selectedExp()!.category }}
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Status</span>
+              <app-status-badge [status]="selectedExp()!.status"></app-status-badge>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Source</span>
+              <span class="detail-val">{{ selectedExp()!.source || '—' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Shared</span>
+              <span class="detail-val">{{ selectedExp()!.shared ? 'Yes' : 'No' }}</span>
+            </div>
+          </div>
+          <!-- Amount block -->
+          <div class="amount-block">
+            <div class="amount-block-label">Amount</div>
+            <div class="amount-thb">{{ fmtThb(selectedExp()!.amount) }}</div>
+            <div class="amount-fx">
+              <span class="fx-pill fx-usd">{{ fmtUsd(selectedExp()!.amount) }}</span>
+              <span class="fx-pill fx-idr">{{ fmtIdr(selectedExp()!.amount) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="side-panel-footer">
+          <button class="dlg-btn dlg-cancel" (click)="openEditDialog(selectedExp()!)">✏ Edit</button>
+          <button class="dlg-btn dlg-del" (click)="confirmDelete(selectedExp()!)">🗑 Delete</button>
+        </div>
+      </div>
+    }
   `,
   styles: [`
-    .expenses-wrap {
-      padding: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
+    /* ── ng-deep dialog override (transparency fix) ─────────── */
+    :host ::ng-deep .p-dialog {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 14px !important;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.2) !important;
+      overflow: hidden !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-header {
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      padding: 18px 22px !important;
+      border-radius: 14px 14px 0 0 !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-header .p-dialog-title {
+      font-weight: 700 !important;
+      font-size: 1rem !important;
+      color: #0f172a !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-content {
+      background: #ffffff !important;
+      padding: 0 !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-footer {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      padding: 0 !important;
+      border-radius: 0 0 14px 14px !important;
+    }
+    :host ::ng-deep .p-dialog-mask {
+      background: rgba(15,23,42,0.55) !important;
+      backdrop-filter: blur(4px) !important;
     }
 
-    /* ── Header ── */
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
-    }
-    .page-title {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      margin: 0 0 4px;
-    }
-    .page-sub {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin: 0;
-    }
+    /* ── Page ──────────────────────────────────────────────── */
+    .exp-wrap { padding: 24px; max-width: 1400px; margin: 0 auto; }
 
-    /* ── Filter bar ── */
-    .filter-bar {
-      display: flex;
-      gap: 16px;
-      align-items: flex-end;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
+    .exp-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
     }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .filter-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    :host ::ng-deep .filter-dropdown {
-      min-width: 160px;
-    }
-    :host ::ng-deep .filter-calendar {
-      min-width: 240px;
-    }
+    .exp-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em; }
+    .exp-sub   { font-size: 0.8rem; color: #64748b; margin: 4px 0 0; }
 
-    /* ── Summary bar ── */
-    .summary-bar {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 16px;
-      padding: 12px 20px;
-      background: var(--bg-tertiary);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
+    .btn-add {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px;
+      background: #2563eb; color: #ffffff;
+      font-size: 0.875rem; font-weight: 700;
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      font-family: inherit;
     }
-    .summary-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .summary-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-subtle);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .summary-value {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
+    .btn-add:hover  { background: #1d4ed8; box-shadow: 0 6px 16px rgba(37,99,235,0.4); }
+    .btn-add:active { transform: translateY(1px); }
 
-    /* ── Table card ── */
+    /* ── Filters ───────────────────────────────────────────── */
+    .filters-bar {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 12px; margin-bottom: 16px;
+    }
+    .search-wrap {
+      display: flex; align-items: center; gap: 8px;
+      background: #ffffff; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; padding: 8px 12px;
+      flex: 1; min-width: 200px; max-width: 320px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-wrap:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .search-icon  { font-size: 0.9rem; color: #94a3b8; }
+    .search-input {
+      border: none; outline: none; background: transparent;
+      font-size: 0.875rem; color: #0f172a; width: 100%; font-family: inherit;
+    }
+    .search-input::placeholder { color: #94a3b8; }
+
+    .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-pill {
+      padding: 5px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      border: 1.5px solid #e2e8f0; background: #ffffff; color: #64748b;
+      cursor: pointer; transition: all 0.15s; font-family: inherit;
+    }
+    .filter-pill:hover  { background: #f8fafc; border-color: #cbd5e1; }
+    .filter-pill.active { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+
+    /* ── Summary strip ─────────────────────────────────────── */
+    .summary-strip {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    .summary-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border-radius: 10px;
+      background: #ffffff; border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .chip-amber { background: #fffbeb; border-color: #fde68a; }
+    .chip-green { background: #f0fdf4; border-color: #a7f3d0; }
+    .summary-label { font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; }
+    .summary-val   { font-size: 0.95rem; font-weight: 800; color: #0f172a; }
+    .summary-sub   { font-size: 0.7rem; color: #94a3b8; }
+
+    /* ── Table ─────────────────────────────────────────────── */
     .table-card {
-      background: var(--surface-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
+      background: #ffffff; border-radius: 14px;
+      border: 1px solid #e2e8f0; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-      background: var(--bg-tertiary);
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 12px 16px;
-      border-color: var(--border-color);
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .exp-table { width: 100%; border-collapse: collapse; }
+    .exp-table thead th {
+      background: #f8fafc; padding: 10px 14px;
+      text-align: left; font-size: 0.66rem; font-weight: 700;
+      color: #64748b; text-transform: uppercase; letter-spacing: 0.07em;
+      border-bottom: 1px solid #e2e8f0; white-space: nowrap;
     }
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-      padding: 12px 16px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      border-color: var(--border-subtle);
-      vertical-align: middle;
-      background: var(--surface-card);
+    .exp-table tbody td {
+      padding: 11px 14px; border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle; font-size: 0.84rem; color: #334155;
     }
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
-      background: var(--bg-tertiary) !important;
+    .exp-row { cursor: pointer; transition: background 0.12s; }
+    .exp-row:hover td { background: #f8fafc; }
+    .exp-table tbody tr:last-child td { border-bottom: none; }
+
+    .col-date  { white-space: nowrap; color: #64748b !important; font-size: 0.78rem !important; }
+    .col-store { color: #64748b !important; font-size: 0.8rem !important; }
+    .col-desc  { max-width: 200px; }
+    .col-amount{ text-align: right; }
+    .col-actions { white-space: nowrap; }
+
+    .desc-main   { font-weight: 600; color: #0f172a; }
+    .shared-chip {
+      display: inline-block; padding: 1px 6px;
+      background: #eff6ff; color: #2563eb;
+      border-radius: 999px; font-size: 0.6rem; font-weight: 700;
+      margin-top: 2px;
     }
-    :host ::ng-deep .p-paginator {
-      padding: 12px 16px;
-      font-size: 0.8rem;
-      background: var(--surface-card);
-      color: var(--text-muted);
-      border-color: var(--border-color);
+    .cat-chip {
+      display: inline-block; padding: 3px 9px;
+      border-radius: 999px; font-size: 0.68rem; font-weight: 700;
     }
-    :host ::ng-deep .p-paginator .p-paginator-page,
-    :host ::ng-deep .p-paginator .p-paginator-next,
-    :host ::ng-deep .p-paginator .p-paginator-prev {
-      color: var(--text-muted);
+    .amt-main { font-weight: 700; color: #0f172a; font-size: 0.88rem; }
+    .amt-sub  { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
+
+    /* ── Action buttons ────────────────────────────────────── */
+    .act-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid #e2e8f0; background: #ffffff;
+      font-size: 0.8rem; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-left: 3px; transition: all 0.15s;
+    }
+    .act-edit:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .act-ok:hover   { background: #f0fdf4; border-color: #a7f3d0; color: #059669; }
+    .act-rej:hover  { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .act-del:hover  { background: #fef2f2; border-color: #fecaca; }
+
+    /* ── Empty state ───────────────────────────────────────── */
+    .empty-row td { padding: 48px !important; }
+    .empty-state  { text-align: center; }
+    .empty-icon   { font-size: 2rem; margin-bottom: 8px; }
+    .empty-text   { font-size: 0.9rem; font-weight: 600; color: #334155; }
+    .empty-sub    { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+
+    /* ── Pagination ────────────────────────────────────────── */
+    .pagination {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      padding: 12px; border-top: 1px solid #f1f5f9;
+    }
+    .page-btn {
+      padding: 6px 14px; border-radius: 8px;
+      border: 1.5px solid #e2e8f0; background: #ffffff;
+      color: #334155; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; font-family: inherit;
+    }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-btn:not(:disabled):hover { background: #f8fafc; border-color: #2563eb; color: #2563eb; }
+    .page-info { font-size: 0.8rem; color: #64748b; }
+
+    /* ── Dialog body ───────────────────────────────────────── */
+    .dialog-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+    .form-row    { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grp    { display: flex; flex-direction: column; gap: 6px; }
+    .form-lbl    { font-size: 0.78rem; font-weight: 600; color: #334155; }
+    .req         { color: #dc2626; }
+    .form-inp {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.875rem; font-family: inherit; color: #0f172a;
+      background: #ffffff; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .form-check { display: flex; align-items: center; gap: 10px; }
+    .check-lbl  { font-size: 0.82rem; color: #334155; cursor: pointer; }
+
+    .amount-preview { display: flex; gap: 8px; margin-top: 6px; }
+    .prev-pill {
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700;
+    }
+    .prev-usd { background: #f0fdf4; color: #059669; }
+    .prev-idr { background: #eff6ff; color: #1d4ed8; }
+
+    /* ── Dialog buttons ────────────────────────────────────── */
+    .dlg-btn {
+      padding: 9px 20px; border-radius: 8px; font-size: 0.875rem;
+      font-weight: 700; border: none; cursor: pointer;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .dlg-cancel {
+      background: #f1f5f9; color: #334155;
+      border: 1.5px solid #e2e8f0;
+      margin: 12px 4px 12px 12px;
+    }
+    .dlg-cancel:hover { background: #e2e8f0; }
+    .dlg-save {
+      background: #2563eb; color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+      margin: 12px 12px 12px 4px;
+    }
+    .dlg-save:hover:not(:disabled) { background: #1d4ed8; }
+    .dlg-save:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+    .dlg-del {
+      background: #fee2e2; color: #dc2626;
+      border: 1.5px solid #fecaca;
+      margin: 12px;
+    }
+    .dlg-del:hover { background: #fecaca; }
+
+    /* ── Side panel ────────────────────────────────────────── */
+    .panel-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.4); backdrop-filter: blur(2px);
+      z-index: 150;
+    }
+    .side-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 420px;
+      max-width: 100vw; background: #ffffff; z-index: 151;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+    .side-panel.open { transform: translateX(0); }
+    .side-panel-header {
+      padding: 18px 20px; border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .panel-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin: 0; }
+    .panel-sub   { font-size: 0.72rem; color: #94a3b8; margin: 3px 0 0; }
+    .panel-close {
+      width: 30px; height: 30px; border-radius: 6px;
+      border: 1px solid #e2e8f0; background: #f8fafc;
+      cursor: pointer; font-size: 0.75rem; color: #64748b;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .panel-close:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+    .side-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .side-panel-footer {
+      padding: 14px 20px; border-top: 1px solid #e2e8f0;
+      display: flex; gap: 8px;
     }
 
-    /* ── Table cells ── */
-    .cell-date {
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      white-space: nowrap;
+    .detail-grid { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+    .detail-row  {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid #f1f5f9;
     }
-    .toko-name {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .desc-text {
-      display: block;
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .cat-pill {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 9999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-    }
-    .bg-blue-100.text-blue-700   { background: var(--accent-primary-subtle); color: var(--accent-primary); }
-    .bg-orange-100.text-orange-700 { background: var(--accent-warning-subtle); color: var(--accent-warning); }
-    .bg-purple-100.text-purple-700 { background: var(--accent-purple-subtle); color: var(--accent-purple); }
-    .bg-pink-100.text-pink-700   { background: var(--accent-danger-subtle); color: var(--accent-danger); }
-    .bg-gray-100.text-gray-700   { background: var(--bg-tertiary); color: var(--text-muted); }
-    .amt-text {
-      font-weight: 700;
-      color: var(--text-primary);
-      font-size: 0.9rem;
-    }
-    .text-right { text-align: right; }
-    .rec-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .rec-name {
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-    .action-buttons {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-lbl { font-size: 0.75rem; color: #94a3b8; font-weight: 600; }
+    .detail-val { font-size: 0.84rem; color: #0f172a; font-weight: 500; text-align: right; }
 
-    /* ── Empty state ── */
-    .empty-cell {
-      text-align: center;
-      padding: 48px 16px !important;
+    .amount-block {
+      background: #f8fafc; border-radius: 12px; padding: 16px;
+      border: 1px solid #e2e8f0; text-align: center;
     }
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-    .empty-icon {
-      font-size: 2rem;
-    }
-    .empty-text {
-      color: var(--text-subtle);
-      font-size: 0.9rem;
-    }
-
-    /* ── Dialog form ── */
-    .dialog-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 8px 0;
-    }
-    .form-field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-field-check {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-    }
-    .form-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-    .form-label-check {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-    .w-full {
-      width: 100%;
-    }
-    :host ::ng-deep .dialog-form .p-inputtext,
-    :host ::ng-deep .dialog-form .p-select,
-    :host ::ng-deep .dialog-form .p-datepicker,
-    :host ::ng-deep .dialog-form .p-inputnumber {
-      width: 100%;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      .expenses-wrap { padding: 16px; }
-      .filter-bar { flex-direction: column; align-items: stretch; }
-      :host ::ng-deep .filter-dropdown,
-      :host ::ng-deep .filter-calendar { min-width: unset; width: 100%; }
-      .page-header { flex-direction: column; gap: 12px; }
-    }
+    .amount-block-label { font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+    .amount-thb { font-size: 1.8rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+    .amount-fx  { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+    .fx-pill    { padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+    .fx-usd     { background: #f0fdf4; color: #059669; }
+    .fx-idr     { background: #eff6ff; color: #1d4ed8; }
   `]
 })
 export class ExpensesComponent implements OnInit {
-  // ── Services ───────────────────────────────────────────────────────────────
-  private readonly svc = inject(MockDataService);
-  private readonly msg = inject(MessageService);
+  private svc    = inject(MockDataService);
+  private auth   = inject(AuthService);
+  private msgSvc = inject(MessageService);
 
-  // ── Constants (exposed for template) ───────────────────────────────────────
-  readonly fmtThb = fmtThb;
-  readonly fmtDate = fmtDate;
-  readonly CATEGORY_OPTIONS = CATEGORY_OPTIONS;
-  readonly STATUS_OPTIONS = STATUS_OPTIONS;
+  fmtThb = fmtThb;
+  fmtUsd = fmtUsd;
+  fmtIdr = fmtIdr;
+  fmtDate = fmtDate;
+  fmtDateTime = fmtDateTime;
 
-  // ── Current user ────────────────────────────────────────────────────────────
-  currentUser: User = { id: 1, name: 'Syaeful', username: 'syaeful', email: '', role: 'ADMIN', isActive: true, isSystem: false };
+  cats = CATEGORIES;
+  categoryOptions = CATEGORIES.map(c => ({ label: c, value: c }));
+  sourceOptions   = SOURCES.map(s => ({ label: s, value: s }));
+  statusOptions   = STATUSES.map(s => ({ label: s, value: s }));
 
-  // ── Filter signals ──────────────────────────────────────────────────────────
-  filterStatus = signal<string>('ALL');
-  filterRecorderId = signal<number | null>(null);
-  filterDateRange = signal<Date[] | null>(null);
+  // Live data — direct read from store
+  allExpenses = this.svc.expenses;
 
-  // ── Dialog state ────────────────────────────────────────────────────────────
-  dialogVisible = false;
-  dialogMode: 'new' | 'edit' = 'new';
-  formData: ExpenseFormData = this.emptyFormData();
+  // UI state
+  dialogVisible = signal(false);
+  editingId     = signal<number | undefined>(undefined);
+  selectedExp   = signal<Expense | null>(null);
+  filterCat     = signal('ALL');
+  filterStatus  = signal('ALL');
+  currentPage   = signal(0);
+  pageSize      = 15;
 
-  // ── Dropdown options ────────────────────────────────────────────────────────
-  userDropdownOptions: { label: string; value: number }[] = [];
+  searchQ = '';
+  private searchSignal = signal('');
 
-  // ── Computed: all users from service ───────────────────────────────────────
-  private readonly allUsers = computed(() => this.svc.users());
+  form: ExpenseForm = { ...EMPTY_FORM };
 
-  // ── Computed: filtered expenses ──────────────────────────────────────────────
+  currentUser = signal<User | null>(null);
+
+  isAdmin = computed(() => this.currentUser()?.role === 'ADMIN');
+
   filteredExpenses = computed(() => {
-    let result = this.svc.expenses();
-
-    // Filter by status
-    const status = this.filterStatus();
-    if (status !== 'ALL') {
-      result = result.filter(e => e.status === status);
-    }
-
-    // Filter by recorder
-    const recId = this.filterRecorderId();
-    if (recId !== null) {
-      result = result.filter(e => e.recorderId === recId);
-    }
-
-    // Filter by date range
-    const dateRange = this.filterDateRange();
-    if (dateRange && dateRange.length === 2) {
-      const [start, end] = dateRange;
-      if (start && end) {
-        const startTime = new Date(start).getTime();
-        const endTime = new Date(end).getTime();
-        result = result.filter(e => {
-          const expTime = new Date(e.expenseDate).getTime();
-          return expTime >= startTime && expTime <= endTime;
-        });
-      }
-    }
-
-    // Sort by date descending
-    return [...result].sort((a, b) =>
-      new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime()
-    );
+    const q = this.searchSignal().toLowerCase();
+    const cat = this.filterCat();
+    const st  = this.filterStatus();
+    return this.allExpenses().filter(e => {
+      if (q && !`${e.description} ${e.toko ?? ''} ${e.category ?? ''}`.toLowerCase().includes(q)) return false;
+      if (cat !== 'ALL' && e.category !== cat) return false;
+      if (st  !== 'ALL' && e.status   !== st)  return false;
+      return true;
+    });
   });
 
-  // ── Computed: total filtered amount ─────────────────────────────────────────
-  totalFilteredAmount = computed(() =>
-    this.filteredExpenses().reduce((sum, e) => sum + e.amount, 0)
-  );
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filteredExpenses().length / this.pageSize)));
 
-  ngOnInit(): void {
-    // Load current user from localStorage
-    const stored = localStorage.getItem('gen_expenses_user');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as { id: number; name: string; role: string };
-        const found = this.svc.getUserById(parsed.id);
-        if (found) this.currentUser = found;
-      } catch { /* use defaults */ }
-    }
+  pagedExpenses = computed(() => {
+    const start = this.currentPage() * this.pageSize;
+    return this.filteredExpenses().slice(start, start + this.pageSize);
+  });
 
-    // Build user dropdown options
-    this.userDropdownOptions = this.allUsers().map(u => ({
-      label: u.name,
-      value: u.id,
-    }));
+  filteredTotal = computed(() => this.filteredExpenses().reduce((s, e) => s + (e.amount ?? 0), 0));
+  pendingTotal  = computed(() => this.filteredExpenses().filter(e => e.status === 'PENDING').reduce((s, e) => s + (e.amount ?? 0), 0));
+  approvedTotal = computed(() => this.filteredExpenses().filter(e => e.status === 'APPROVED').reduce((s, e) => s + (e.amount ?? 0), 0));
+
+  ngOnInit() {
+    this.currentUser.set(this.auth.getCurrentUser());
   }
 
-  // ── Filter actions ──────────────────────────────────────────────────────────
-  applyFilters(): void {
-    // Signals auto-update computed values
+  onSearch(q: string) {
+    this.searchSignal.set(q);
+    this.currentPage.set(0);
   }
 
-  clearFilters(): void {
-    this.filterStatus.set('ALL');
-    this.filterRecorderId.set(null);
-    this.filterDateRange.set(null);
+  openAddDialog() {
+    this.editingId.set(undefined);
+    this.form = { ...EMPTY_FORM, expenseDate: new Date() };
+    this.dialogVisible.set(true);
   }
 
-  // ── Category helpers ─────────────────────────────────────────────────────────
-  getCategoryClass(category: string): string {
-    return CATEGORY_COLORS[category] || CATEGORY_COLORS['Other'];
-  }
-
-  // ── User helpers ─────────────────────────────────────────────────────────────
-  getUserName(id: number): string {
-    return this.svc.getUserById(id)?.name ?? `User #${id}`;
-  }
-
-  // ── Action visibility ────────────────────────────────────────────────────────
-  canShowActions(exp: Expense): boolean {
-    if (this.currentUser.role === 'ADMIN') return true;
-    if (exp.recorderId === this.currentUser.id && exp.status === 'PENDING') return true;
-    return false;
-  }
-
-  // ── Dialog actions ──────────────────────────────────────────────────────────
-  openNewDialog(): void {
-    this.dialogMode = 'new';
-    this.formData = this.emptyFormData();
-    this.dialogVisible = true;
-  }
-
-  openEditDialog(exp: Expense): void {
-    this.dialogMode = 'edit';
-    this.formData = {
+  openEditDialog(exp: Expense) {
+    this.editingId.set(exp.id);
+    this.form = {
       id: exp.id,
-      expenseDate: new Date(exp.expenseDate),
+      expenseDate: exp.expenseDate ? new Date(exp.expenseDate) : new Date(),
       toko: exp.toko ?? '',
       description: exp.description,
       amount: exp.amount,
       category: exp.category,
-      source: exp.source ?? '',
+      source: exp.source ?? 'Cash',
       shared: exp.shared ?? false,
       status: exp.status,
     };
-    this.dialogVisible = true;
+    this.dialogVisible.set(true);
   }
 
-  saveExpense(): void {
-    // Validate required fields
-    if (!this.formData.expenseDate || !this.formData.toko || !this.formData.description ||
-        this.formData.amount === null || this.formData.amount <= 0 || !this.formData.category) {
-      this.msg.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.' });
-      return;
-    }
+  closeDialog() { this.dialogVisible.set(false); }
 
-    const expenseDateStr = this.formData.expenseDate instanceof Date
-      ? this.formData.expenseDate.toISOString().split('T')[0]
-      : this.formData.expenseDate;
-
-    if (this.dialogMode === 'new') {
-      const newExpense = {
-        expenseDate: expenseDateStr,
-        amount: this.formData.amount,
-        description: this.formData.description,
-        toko: this.formData.toko,
-        source: this.formData.source || '',
-        category: this.formData.category,
-        recorderId: this.currentUser.id,
-        shared: this.formData.shared,
-        status: this.formData.status,
-        createdAt: new Date().toISOString(),
-      };
-      this.svc.addExpense(newExpense);
-      this.msg.add({ severity: 'success', summary: 'Success', detail: 'Expense added successfully.' });
-    } else if (this.formData.id) {
-      // For edit, we would update the expense - simplified here
-      this.msg.add({ severity: 'success', summary: 'Success', detail: 'Expense updated successfully.' });
-    }
-
-    this.dialogVisible = false;
+  isFormValid(): boolean {
+    return !!(this.form.description?.trim() && this.form.amount && this.form.amount > 0 && this.form.expenseDate);
   }
 
-  // ── CRUD actions ─────────────────────────────────────────────────────────────
-  approveExpense(exp: Expense): void {
-    if (exp.id) {
-      this.svc.updateExpenseStatus(exp.id, 'APPROVED');
-      this.msg.add({ severity: 'success', summary: 'Approved', detail: `Expense #${exp.id} approved.` });
-    }
-  }
+  onAmountChange() { /* templated computed handles preview */ }
 
-  rejectExpense(exp: Expense): void {
-    if (exp.id) {
-      this.svc.updateExpenseStatus(exp.id, 'REJECTED');
-      this.msg.add({ severity: 'warn', summary: 'Rejected', detail: `Expense #${exp.id} rejected.` });
-    }
-  }
+  saveExpense() {
+    if (!this.isFormValid()) return;
+    const dateStr = (this.form.expenseDate ?? new Date()).toISOString().split('T')[0];
 
-  deleteExpense(exp: Expense): void {
-    if (exp.id && confirm(`Delete expense #${exp.id}? This cannot be undone.`)) {
-      this.svc.deleteExpense(exp.id);
-      this.msg.add({ severity: 'info', summary: 'Deleted', detail: 'Expense removed.' });
-    }
-  }
-
-  // ── Form helpers ────────────────────────────────────────────────────────────
-  private emptyFormData(): ExpenseFormData {
-    return {
-      expenseDate: null,
-      toko: '',
-      description: '',
-      amount: null,
-      category: '',
-      source: '',
-      shared: false,
-      status: 'DRAFT',
+    const patch = {
+      expenseDate: dateStr,
+      toko:        this.form.toko,
+      description: this.form.description,
+      amount:      this.form.amount ?? 0,
+      category:    this.form.category,
+      source:      this.form.source,
+      shared:      this.form.shared,
+      status:      this.form.status,
     };
+
+    const editId = this.editingId();
+    if (editId) {
+      this.svc.updateExpense(editId, patch);
+      this.msgSvc.add({ severity: 'success', summary: 'Updated', detail: 'Expense updated successfully' });
+    } else {
+      this.svc.addExpense({ ...patch, recorderId: this.currentUser()?.id });
+      this.msgSvc.add({ severity: 'success', summary: 'Added', detail: 'Expense added successfully' });
+    }
+    this.closeDialog();
   }
+
+  approve(exp: Expense) {
+    if (exp.id == null) return;
+    this.svc.updateExpenseStatus(exp.id, 'APPROVED');
+    this.msgSvc.add({ severity: 'success', summary: 'Approved', detail: `"${exp.description}" approved` });
+  }
+
+  reject(exp: Expense) {
+    if (exp.id == null) return;
+    this.svc.updateExpenseStatus(exp.id, 'REJECTED');
+    this.msgSvc.add({ severity: 'warn', summary: 'Rejected', detail: `"${exp.description}" rejected` });
+  }
+
+  confirmDelete(exp: Expense) {
+    if (exp.id == null) return;
+    if (!confirm(`Delete "${exp.description}"?`)) return;
+    this.svc.deleteExpense(exp.id);
+    if (this.selectedExp()?.id === exp.id) this.selectedExp.set(null);
+    this.msgSvc.add({ severity: 'success', summary: 'Deleted', detail: `"${exp.description}" deleted` });
+  }
+
+  selectExp(exp: Expense) { this.selectedExp.set(exp); }
+
+  prevPage() { this.currentPage.update(p => Math.max(0, p - 1)); }
+  nextPage() { this.currentPage.update(p => Math.min(this.totalPages() - 1, p + 1)); }
+
+  catBg(cat: string): string { return CAT_BADGE[cat]?.bg ?? '#f8fafc'; }
+  catFg(cat: string): string { return CAT_BADGE[cat]?.fg ?? '#475569'; }
 }

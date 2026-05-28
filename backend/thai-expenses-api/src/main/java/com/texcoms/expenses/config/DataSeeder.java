@@ -14,8 +14,9 @@ import org.springframework.stereotype.Component;
 /**
  * Ensures canonical seed users exist with correct credentials.
  *
- * - If a user with the given email already exists, updates their password
- *   and app_username to the canonical values (so login always works after deploy).
+ * - If a user with the given email already exists, syncs app_username and
+ *   re-encodes the password ONLY if the current hash doesn't match the canonical
+ *   password (so deliberate password changes persist across restarts).
  * - If the user doesn't exist at all, creates them.
  *
  * Runs AFTER SumoBaseInitRunner (Order 2).
@@ -46,17 +47,29 @@ public class DataSeeder implements ApplicationRunner {
                 userRepository.findByEmail(seed.email()).ifPresentOrElse(
                     existing -> {
                         boolean updated = false;
-                        // Sync app_username
+                        // Sync app_username if missing or wrong
                         if (existing.getUsername() == null || !seed.username().equals(existing.getUsername())) {
                             existing.setUsername(seed.username());
                             updated = true;
                         }
-                        // Always re-encode password to canonical value
-                        existing.setPassword(passwordEncoder.encode(seed.password()));
-                        existing.setIsActive(true);
-                        updated = true;
-                        userRepository.save(existing);
-                        log.info("  Synced user: {} (id={})", seed.username(), existing.getId());
+                        // Re-encode password only if the stored hash doesn't match the canonical password
+                        // (preserves deliberate password changes while recovering from a missing/corrupt hash)
+                        if (existing.getPassword() == null
+                                || !passwordEncoder.matches(seed.password(), existing.getPassword())) {
+                            existing.setPassword(passwordEncoder.encode(seed.password()));
+                            updated = true;
+                            log.info("  Reset password for seed user: {}", seed.username());
+                        }
+                        if (!Boolean.TRUE.equals(existing.getIsActive())) {
+                            existing.setIsActive(true);
+                            updated = true;
+                        }
+                        if (updated) {
+                            userRepository.save(existing);
+                            log.info("  Synced user: {} (id={})", seed.username(), existing.getId());
+                        } else {
+                            log.debug("  User already up-to-date: {}", seed.username());
+                        }
                     },
                     () -> {
                         // User doesn't exist — check if username is taken

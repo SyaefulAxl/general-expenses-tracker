@@ -1,570 +1,504 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
-import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
-import { TagModule } from 'primeng/tag';
-import { ProgressBarModule } from 'primeng/progressbar';
+import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { AvatarComponent } from '@shared/components/avatar/avatar.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { MockDataService } from '@core/services/mock-data.service';
 import { AuthService } from '@core/services/auth.service';
 import { Loan } from '@core/models';
+import { fmtThb, fmtUsd, fmtIdr, fmtDate } from '@core/utils/currency.utils';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-function fmtThb(v: number): string {
-  return '฿' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+type LoanTab = 'iOwe' | 'owedToMe';
+
+interface RepaymentForm {
+  amount: number | null;
+  notes: string;
 }
 
 @Component({
   selector: 'app-loans',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
-    TableModule,
-    ButtonModule,
-    DialogModule,
-    InputTextModule,
-    InputNumberModule,
-    TextareaModule,
-    TagModule,
-    ProgressBarModule,
-    AvatarComponent,
+    CommonModule, FormsModule,
+    DialogModule, ButtonModule, InputNumberModule, TextareaModule, ToastModule,
     StatusBadgeComponent,
   ],
   providers: [MessageService],
   template: `
+    <p-toast position="top-right" [life]="3500"></p-toast>
+
     <div class="loans-wrap">
 
-      <!-- ── Page header ──────────────────────────────────────────────── -->
-      <header class="page-header">
+      <!-- ── Header ──────────────────────────────────────────── -->
+      <div class="loans-header">
         <div>
-          <h1 class="page-title">Loan Data</h1>
-          <p class="page-sub">Thailand Expenses Tracker</p>
+          <h1 class="loans-title">Loans</h1>
+          <p class="loans-sub">Track money borrowed and lent within the team</p>
         </div>
-        <button pButton type="button" label="Record Repayment" class="p-button-primary" icon="pi pi-plus" (click)="openRepaymentDialog()"></button>
-      </header>
+        <button class="btn-repay" (click)="openRepaymentDialog(null)">
+          <span>💰</span> Record Repayment
+        </button>
+      </div>
 
-      <!-- ── Summary cards ───────────────────────────────────────────── -->
-      <div class="summary-cards">
-        <div class="summary-card card-owed">
-          <span class="card-label">Owed to me</span>
-          <span class="card-value positive">{{ fmtThb(owedToMe()) }}</span>
+      <!-- ── KPI Summary ──────────────────────────────────────── -->
+      <div class="kpi-row">
+        <div class="kpi-card kpi-green">
+          <div class="kpi-icon">💚</div>
+          <div class="kpi-body">
+            <div class="kpi-lbl">Owed to Me</div>
+            <div class="kpi-thb">{{ fmtThb(owedToMe()) }}</div>
+            <div class="kpi-fx">{{ fmtUsd(owedToMe()) }}</div>
+            <div class="kpi-fx">{{ fmtIdr(owedToMe()) }}</div>
+          </div>
         </div>
-        <div class="summary-card card-owe">
-          <span class="card-label">I owe</span>
-          <span class="card-value negative">{{ fmtThb(iOwe()) }}</span>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-icon">❤️</div>
+          <div class="kpi-body">
+            <div class="kpi-lbl">I Owe</div>
+            <div class="kpi-thb" style="color:#dc2626">{{ fmtThb(iOwe()) }}</div>
+            <div class="kpi-fx">{{ fmtUsd(iOwe()) }}</div>
+            <div class="kpi-fx">{{ fmtIdr(iOwe()) }}</div>
+          </div>
         </div>
-        <div class="summary-card" [class.card-positive]="netPosition() >= 0" [class.card-negative]="netPosition() < 0">
-          <span class="card-label">Net position</span>
-          <span class="card-value">{{ fmtThb(netPosition()) }}</span>
+        <div class="kpi-card"
+          [style.border-left-color]="netPosition() >= 0 ? '#059669' : '#dc2626'">
+          <div class="kpi-icon">{{ netPosition() >= 0 ? '📈' : '📉' }}</div>
+          <div class="kpi-body">
+            <div class="kpi-lbl">Net Position</div>
+            <div class="kpi-thb" [style.color]="netPosition() >= 0 ? '#059669' : '#dc2626'">
+              {{ netPosition() >= 0 ? '+' : '' }}{{ fmtThb(netPosition()) }}
+            </div>
+            <div class="kpi-fx" [style.color]="netPosition() >= 0 ? '#059669' : '#dc2626'">
+              {{ netPosition() >= 0 ? '+' : '' }}{{ fmtUsd(netPosition()) }}
+            </div>
+            <div class="kpi-fx" [style.color]="netPosition() >= 0 ? '#059669' : '#dc2626'">
+              {{ netPosition() >= 0 ? '+' : '' }}{{ fmtIdr(netPosition()) }}
+            </div>
+          </div>
         </div>
-        <div class="summary-card card-count">
-          <span class="card-label">Open loans</span>
-          <span class="card-value">{{ openLoansCount() }}</span>
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-icon">📋</div>
+          <div class="kpi-body">
+            <div class="kpi-lbl">Open Loans</div>
+            <div class="kpi-thb" style="color:#2563eb; font-size:2rem;">{{ openLoansCount() }}</div>
+            <div class="kpi-fx">active loans</div>
+          </div>
         </div>
       </div>
 
-      <!-- ── "I owe ↑" section ────────────────────────────────────────── -->
-      @if (iOweLoans().length > 0) {
-        <section class="loan-section">
-          <h2 class="section-title">I owe ↑</h2>
-          <div class="table-card">
-            <p-table [value]="iOweLoans()" [paginator]="true" [rows]="5" styleClass="p-datatable-sm p-datatable-striped">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th>Lender</th>
-                  <th style="text-align: right;">Original Amount</th>
-                  <th style="text-align: right;">Declared Repayment</th>
-                  <th style="text-align: center;">Actual Repaid</th>
-                  <th style="text-align: right;">Remaining</th>
-                  <th style="width: 110px;">Status</th>
-                  <th style="width: 100px; text-align: center;">Action</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-loan>
-                <tr>
-                  <td>
-                    <div class="user-cell">
-                      <app-avatar [name]="getUserName(loan.lenderId)"></app-avatar>
-                      <span>{{ getUserName(loan.lenderId) }}</span>
-                    </div>
-                  </td>
-                  <td style="text-align: right;">{{ fmtThb(loan.amount) }}</td>
-                  <td style="text-align: right;">{{ fmtThb(loan.declaredRepayment ?? loan.amount ?? 0) }}</td>
-                  <td>
-                    <div class="progress-cell">
-                      <p-progressBar [value]="getRepaidPercent(loan)" [showValue]="false" styleClass="repaid-progress"></p-progressBar>
-                      <span class="progress-label">{{ fmtThb(loan.actualRepaid ?? 0) }}</span>
-                    </div>
-                  </td>
-                  <td style="text-align: right; font-weight: 600;">{{ fmtThb(getRemainingBalance(loan)) }}</td>
-                  <td><app-status-badge [status]="loan.status"></app-status-badge></td>
-                  <td style="text-align: center;">
-                    <button pButton type="button" label="Repay" class="p-button-outlined p-button-sm p-button-rounded" (click)="openRepaymentDialog(loan)"></button>
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="7" class="empty-cell">No outstanding loans</td></tr>
-              </ng-template>
-            </p-table>
-          </div>
-        </section>
-      }
+      <!-- ── Tab Strip ────────────────────────────────────────── -->
+      <div class="tab-strip">
+        <button
+          class="tab-btn"
+          [style.color]="activeTab() === 'iOwe' ? '#2563eb' : '#64748b'"
+          [style.border-bottom-color]="activeTab() === 'iOwe' ? '#2563eb' : 'transparent'"
+          (click)="activeTab.set('iOwe')">
+          ↑ I Owe
+          @if (iOweLoans().length > 0) {
+            <span class="tab-badge">{{ iOweLoans().length }}</span>
+          }
+        </button>
+        <button
+          class="tab-btn"
+          [style.color]="activeTab() === 'owedToMe' ? '#059669' : '#64748b'"
+          [style.border-bottom-color]="activeTab() === 'owedToMe' ? '#059669' : 'transparent'"
+          (click)="activeTab.set('owedToMe')">
+          ↓ Owed to Me
+          @if (owedToMeLoans().length > 0) {
+            <span class="tab-badge" style="background:#f0fdf4;color:#059669">{{ owedToMeLoans().length }}</span>
+          }
+        </button>
+      </div>
 
-      <!-- ── "Owed to me ↓" section ──────────────────────────────────── -->
-      @if (owedToMeLoans().length > 0) {
-        <section class="loan-section">
-          <h2 class="section-title">Owed to me ↓</h2>
-          <div class="table-card">
-            <p-table [value]="owedToMeLoans()" [paginator]="true" [rows]="5" styleClass="p-datatable-sm p-datatable-striped">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th>Borrower</th>
-                  <th style="text-align: right;">Original Amount</th>
-                  <th style="text-align: right;">Declared Repayment</th>
-                  <th style="text-align: center;">Actual Repaid</th>
-                  <th style="text-align: right;">Remaining</th>
-                  <th style="width: 110px;">Status</th>
-                  <th style="width: 100px; text-align: center;">Action</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-loan>
-                <tr>
-                  <td>
-                    <div class="user-cell">
-                      <app-avatar [name]="getUserName(loan.borrowerId)"></app-avatar>
-                      <span>{{ getUserName(loan.borrowerId) }}</span>
-                    </div>
-                  </td>
-                  <td style="text-align: right;">{{ fmtThb(loan.amount) }}</td>
-                  <td style="text-align: right;">{{ fmtThb(loan.declaredRepayment ?? loan.amount ?? 0) }}</td>
-                  <td>
-                    <div class="progress-cell">
-                      <p-progressBar [value]="getRepaidPercent(loan)" [showValue]="false" styleClass="repaid-progress"></p-progressBar>
-                      <span class="progress-label">{{ fmtThb(loan.actualRepaid ?? 0) }}</span>
-                    </div>
-                  </td>
-                  <td style="text-align: right; font-weight: 600;">{{ fmtThb(getRemainingBalance(loan)) }}</td>
-                  <td><app-status-badge [status]="loan.status"></app-status-badge></td>
-                  <td style="text-align: center;">
-                    <button pButton type="button" label="Record" class="p-button-outlined p-button-sm p-button-rounded" (click)="openRepaymentDialog(loan)"></button>
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="7" class="empty-cell">No outstanding loans</td></tr>
-              </ng-template>
-            </p-table>
-          </div>
-        </section>
-      }
-
-      <!-- ── Empty state ──────────────────────────────────────────────── -->
-      @if (iOweLoans().length === 0 && owedToMeLoans().length === 0) {
-        <div class="empty-state">
-          <span class="empty-icon">🤝</span>
-          <span class="empty-text">No outstanding loans</span>
-        </div>
-      }
-
-      <!-- ── Record Repayment Dialog ──────────────────────────────────── -->
-      <p-dialog
-        [visible]="repaymentDialogVisible()"
-        (visibleChange)="repaymentDialogVisible.set($event)"
-        header="Record Repayment"
-        [modal]="true"
-        [style]="{ width: '420px' }"
-        [closable]="true"
-        [draggable]="false"
-        [resizable]="false">
-
-        @if (selectedLoan()) {
-          <div class="dialog-form">
-            <div class="dialog-loan-info">
-              <span class="dialog-info-label">{{ isIOwe ? 'Repaying to' : 'Collecting from' }}:</span>
-              <div class="dialog-user">
-                <app-avatar [name]="getUserName(isIOwe ? (selectedLoan()!.lenderId ?? 0) : (selectedLoan()!.borrowerId ?? 0))"></app-avatar>
-                <span class="dialog-user-name">{{ getUserName(isIOwe ? (selectedLoan()!.lenderId ?? 0) : (selectedLoan()!.borrowerId ?? 0)) }}</span>
+      <!-- ── Loan Cards ────────────────────────────────────────── -->
+      <div class="loan-cards">
+        @for (loan of activeLoanList(); track loan.id) {
+          <div class="loan-card">
+            <div class="loan-card-header">
+              <div class="loan-person">
+                <div class="person-avatar" [style.background]="personColor(loan)">
+                  {{ personInitial(loan) }}
+                </div>
+                <div class="person-info">
+                  <div class="person-name">{{ personName(loan) }}</div>
+                  <div class="person-date">{{ fmtDate(loan.createdAt) }}</div>
+                </div>
               </div>
-              <div class="dialog-loan-details">
-                <span>Remaining: <strong>{{ fmtThb(getRemainingBalance(selectedLoan()!)) }}</strong></span>
+              <app-status-badge [status]="loan.status"></app-status-badge>
+            </div>
+
+            <div class="loan-amount-block">
+              <div class="loan-amount-thb">{{ fmtThb(remaining(loan)) }}</div>
+              <div class="loan-amount-fx">
+                <span class="fx-pill fx-usd">{{ fmtUsd(remaining(loan)) }}</span>
+                <span class="fx-pill fx-idr">{{ fmtIdr(remaining(loan)) }}</span>
               </div>
+              @if ((loan.amount ?? 0) > 0) {
+                <div class="loan-progress-wrap">
+                  <div class="loan-progress"
+                    [style.width.%]="paidPct(loan)"
+                    [style.background]="loan.status === 'FULLY_SETTLED' ? '#059669' : '#2563eb'">
+                  </div>
+                </div>
+                <div class="loan-progress-label">
+                  {{ paidPct(loan) | number:'1.0-0' }}% repaid
+                  ({{ fmtThb(loan.actualRepaid ?? loan.paidAmount ?? 0) }} of {{ fmtThb(loan.amount ?? loan.totalAmount ?? 0) }})
+                </div>
+              }
             </div>
 
-            <div class="form-field">
-              <label for="repayAmount" class="form-label">Amount (THB)</label>
-              <p-inputNumber
-                id="repayAmount"
-                [(ngModel)]="repaymentAmount"
-                mode="currency"
-                currency="THB"
-                locale="en-US"
-                [min]="0"
-                [max]="getRemainingBalance(selectedLoan()!)"
-                placeholder="0.00"
-                styleClass="w-full">
-              </p-inputNumber>
-            </div>
+            @if (loan.notes) {
+              <div class="loan-notes">📝 {{ loan.notes }}</div>
+            }
 
-            <div class="form-field">
-              <label for="repayNote" class="form-label">Note (optional)</label>
-              <textarea
-                pTextarea
-                id="repayNote"
-                [(ngModel)]="repaymentNote"
-                placeholder="Add a note..."
-                rows="3"
-                class="w-full">
-              </textarea>
-            </div>
+            @if (loan.status !== 'FULLY_SETTLED') {
+              <div class="loan-actions">
+                <button class="repay-btn" (click)="openRepaymentDialog(loan)">
+                  💰 Record Repayment
+                </button>
+              </div>
+            } @else {
+              <div class="settled-badge">✅ Fully Settled</div>
+            }
           </div>
         }
 
-        <ng-template pTemplate="footer">
-          <button pButton type="button" label="Cancel" class="p-button-text" (click)="closeRepaymentDialog()"></button>
-          <button pButton type="button" label="Confirm" class="p-button-primary" (click)="confirmRepayment()" [disabled]="!repaymentAmount || repaymentAmount <= 0"></button>
-        </ng-template>
-      </p-dialog>
+        @if (activeLoanList().length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">🤝</div>
+            <div class="empty-text">No loans in this category</div>
+            <div class="empty-sub">{{ activeTab() === 'iOwe' ? "You don't owe anyone" : "Nobody owes you anything" }}</div>
+          </div>
+        }
+      </div>
 
     </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- Repayment Dialog                                      -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <p-dialog
+      [visible]="dialogVisible()"
+      (visibleChange)="dialogVisible.set($event)"
+      header="Record Repayment"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{ width: '440px' }"
+      appendTo="body">
+
+      <div class="dlg-body">
+        @if (selectedLoan()) {
+          <div class="loan-info-box">
+            <div class="lib-row">
+              <span class="lib-lbl">Person</span>
+              <span class="lib-val">{{ personName(selectedLoan()!) }}</span>
+            </div>
+            <div class="lib-row">
+              <span class="lib-lbl">Remaining</span>
+              <span class="lib-val lib-val-bold">{{ fmtThb(remaining(selectedLoan()!)) }}</span>
+            </div>
+            <div class="lib-row">
+              <span class="lib-lbl">In USD</span>
+              <span class="lib-val">{{ fmtUsd(remaining(selectedLoan()!)) }}</span>
+            </div>
+            <div class="lib-row">
+              <span class="lib-lbl">In IDR</span>
+              <span class="lib-val">{{ fmtIdr(remaining(selectedLoan()!)) }}</span>
+            </div>
+          </div>
+        }
+        <div class="dlg-form-grp">
+          <label class="dlg-lbl">Repayment Amount (THB) <span class="req">*</span></label>
+          <p-inputnumber
+            [(ngModel)]="repayForm.amount"
+            mode="decimal"
+            [minFractionDigits]="2"
+            [maxFractionDigits]="2"
+            placeholder="0.00"
+            styleClass="w-full">
+          </p-inputnumber>
+          @if (repayForm.amount && repayForm.amount > 0) {
+            <div class="preview-row">
+              <span class="prev-pill prev-usd">≈ {{ fmtUsd(repayForm.amount) }}</span>
+              <span class="prev-pill prev-idr">≈ {{ fmtIdr(repayForm.amount) }}</span>
+            </div>
+          }
+        </div>
+        <div class="dlg-form-grp">
+          <label class="dlg-lbl">Notes (optional)</label>
+          <textarea
+            class="dlg-textarea"
+            [(ngModel)]="repayForm.notes"
+            placeholder="e.g. Paid via cash, GrabPay…"
+            rows="3">
+          </textarea>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <button class="dlg-cancel-btn" (click)="closeDialog()">Cancel</button>
+        <button class="dlg-save-btn" (click)="saveRepayment()" [disabled]="!isRepayFormValid()">
+          💰 Record Repayment
+        </button>
+      </ng-template>
+    </p-dialog>
   `,
   styles: [`
-    .loans-wrap {
-      padding: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
+    :host ::ng-deep .p-dialog {
+      background: #ffffff !important; border: 1px solid #e2e8f0 !important;
+      border-radius: 14px !important; box-shadow: 0 25px 60px rgba(0,0,0,0.2) !important;
+      overflow: hidden !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-header {
+      background: #ffffff !important; border-bottom: 1px solid #e2e8f0 !important;
+      padding: 18px 22px !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-header .p-dialog-title {
+      font-weight: 700 !important; font-size: 1rem !important; color: #0f172a !important;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-content { background: #ffffff !important; padding: 0 !important; }
+    :host ::ng-deep .p-dialog .p-dialog-footer {
+      background: #f8fafc !important; border-top: 1px solid #e2e8f0 !important; padding: 0 !important;
+    }
+    :host ::ng-deep .p-dialog-mask {
+      background: rgba(15,23,42,0.55) !important; backdrop-filter: blur(4px) !important;
     }
 
-    /* ── Header ── */
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
+    .loans-wrap { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .loans-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
     }
-    .page-title {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      margin: 0 0 4px;
+    .loans-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em; }
+    .loans-sub   { font-size: 0.8rem; color: #64748b; margin: 4px 0 0; }
+    .btn-repay {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px;
+      background: #059669; color: #fff; font-size: 0.875rem; font-weight: 700;
+      border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+      transition: background 0.15s; font-family: inherit;
     }
-    .page-sub {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin: 0;
+    .btn-repay:hover { background: #047857; }
+
+    .kpi-row {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 1000px) { .kpi-row { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 600px)  { .kpi-row { grid-template-columns: 1fr; } }
+
+    .kpi-card {
+      background: #ffffff; border-radius: 14px; border: 1.5px solid #e2e8f0;
+      border-left-width: 3px; padding: 18px 16px;
+      display: flex; gap: 12px; align-items: flex-start;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .kpi-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.09); transform: translateY(-2px); }
+    .kpi-green { border-left-color: #059669; }
+    .kpi-red   { border-left-color: #dc2626; }
+    .kpi-blue  { border-left-color: #2563eb; }
+    .kpi-icon  { font-size: 1.4rem; }
+    .kpi-body  { flex: 1; }
+    .kpi-lbl   { font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .kpi-thb   { font-size: 1.3rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+    .kpi-fx    { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+
+    .tab-strip { display: flex; gap: 2px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; }
+    .tab-btn {
+      padding: 10px 20px; border: none; border-bottom: 3px solid transparent;
+      background: transparent; font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px;
+      margin-bottom: -2px; border-radius: 8px 8px 0 0; font-family: inherit;
+    }
+    .tab-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; padding: 0 6px;
+      background: #fee2e2; color: #dc2626;
+      border-radius: 999px; font-size: 0.65rem; font-weight: 700;
     }
 
-    /* ── Summary cards ── */
-    .summary-cards {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
+    .loan-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 16px; }
+    .loan-card {
+      background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0;
+      padding: 20px; display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: box-shadow 0.2s;
     }
-    .summary-card {
-      background: var(--surface-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      box-shadow: var(--shadow-sm);
-      transition: background-color 0.2s ease, border-color 0.2s ease;
+    .loan-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.09); }
+    .loan-card-header { display: flex; align-items: center; justify-content: space-between; }
+    .loan-person { display: flex; align-items: center; gap: 10px; }
+    .person-avatar {
+      width: 38px; height: 38px; border-radius: 50%; color: #fff;
+      font-size: 0.9rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .card-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .person-name { font-size: 0.9rem; font-weight: 700; color: #0f172a; }
+    .person-date { font-size: 0.68rem; color: #94a3b8; margin-top: 1px; }
+    .loan-amount-block { display: flex; flex-direction: column; gap: 5px; }
+    .loan-amount-thb   { font-size: 1.8rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+    .loan-amount-fx    { display: flex; gap: 8px; }
+    .fx-pill { padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .fx-usd  { background: #f0fdf4; color: #059669; }
+    .fx-idr  { background: #eff6ff; color: #1d4ed8; }
+    .loan-progress-wrap { height: 5px; background: #f1f5f9; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .loan-progress      { height: 100%; border-radius: 999px; transition: width 0.5s; }
+    .loan-progress-label { font-size: 0.68rem; color: #94a3b8; margin-top: 3px; }
+    .loan-notes { font-size: 0.78rem; color: #64748b; background: #f8fafc; border-radius: 8px; padding: 8px 12px; border: 1px solid #f1f5f9; }
+    .repay-btn {
+      width: 100%; padding: 10px; border-radius: 8px;
+      background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      transition: all 0.15s; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .card-value {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .card-value.positive { color: var(--accent-success); }
-    .card-value.negative { color: var(--accent-danger); }
-    .card-positive .card-value { color: var(--accent-success); }
-    .card-negative .card-value { color: var(--accent-danger); }
-    .card-count .card-value { color: var(--accent-purple); }
+    .repay-btn:hover { background: #dbeafe; }
+    .settled-badge { text-align: center; font-size: 0.82rem; font-weight: 700; color: #059669; background: #f0fdf4; border-radius: 8px; padding: 8px; border: 1px solid #a7f3d0; }
+    .empty-state { text-align: center; padding: 60px 24px; }
+    .empty-icon  { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-text  { font-size: 1rem; font-weight: 700; color: #334155; }
+    .empty-sub   { font-size: 0.82rem; color: #94a3b8; margin-top: 6px; }
 
-    /* ── Loan section ── */
-    .loan-section {
-      margin-bottom: 24px;
+    .dlg-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+    .loan-info-box {
+      background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
     }
-    .section-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      margin: 0 0 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .lib-row       { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .lib-lbl       { font-size: 0.75rem; color: #94a3b8; font-weight: 600; }
+    .lib-val       { font-size: 0.84rem; color: #0f172a; font-weight: 500; }
+    .lib-val-bold  { font-weight: 800; font-size: 1rem; }
+    .dlg-form-grp  { display: flex; flex-direction: column; gap: 6px; }
+    .dlg-lbl       { font-size: 0.78rem; font-weight: 600; color: #334155; }
+    .req           { color: #dc2626; }
+    .dlg-textarea {
+      width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.875rem; font-family: inherit; color: #0f172a;
+      background: #ffffff; outline: none; resize: vertical;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .section-title::before {
-      content: '';
-      display: inline-block;
-      width: 4px;
-      height: 18px;
-      background: var(--accent-purple);
-      border-radius: 2px;
+    .dlg-textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .preview-row { display: flex; gap: 8px; margin-top: 4px; }
+    .prev-pill   { padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .prev-usd    { background: #f0fdf4; color: #059669; }
+    .prev-idr    { background: #eff6ff; color: #1d4ed8; }
+    .dlg-cancel-btn {
+      padding: 9px 20px; border-radius: 8px; font-size: 0.875rem; font-weight: 700;
+      background: #f1f5f9; color: #334155; border: 1.5px solid #e2e8f0;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+      margin: 12px 4px 12px 12px;
     }
-
-    /* ── Table card ── */
-    .table-card {
-      background: var(--surface-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-      transition: background-color 0.2s ease, border-color 0.2s ease;
+    .dlg-cancel-btn:hover { background: #e2e8f0; }
+    .dlg-save-btn {
+      padding: 9px 20px; border-radius: 8px; font-size: 0.875rem; font-weight: 700;
+      background: #059669; color: #fff; border: none; cursor: pointer;
+      font-family: inherit; box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+      transition: all 0.15s; margin: 12px 12px 12px 4px;
     }
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-      background: var(--bg-tertiary);
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 12px 16px;
-      border-color: var(--border-color);
-    }
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-      padding: 12px 16px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      border-color: var(--border-subtle);
-      vertical-align: middle;
-      background: var(--surface-card);
-    }
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
-      background: var(--bg-tertiary) !important;
-    }
-
-    /* ── User cell ── */
-    .user-cell {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    /* ── Progress cell ── */
-    .progress-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    :host ::ng-deep .repaid-progress {
-      height: 8px !important;
-      border-radius: 4px;
-    }
-    :host ::ng-deep .repaid-progress .p-progressbar-value {
-      background: linear-gradient(90deg, var(--accent-purple), #A855F7);
-    }
-    .progress-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-align: right;
-    }
-
-    /* ── Empty state ── */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px;
-      background: var(--surface-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-    }
-    .empty-icon {
-      font-size: 3rem;
-      margin-bottom: 12px;
-    }
-    .empty-text {
-      font-size: 1rem;
-      color: var(--text-muted);
-    }
-    .empty-cell {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 32px !important;
-    }
-
-    /* ── Dialog form ── */
-    .dialog-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .dialog-loan-info {
-      background: var(--bg-tertiary);
-      border-radius: 8px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .dialog-info-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .dialog-user {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .dialog-user-name {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .dialog-loan-details {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .form-field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-    :host ::ng-deep .w-full {
-      width: 100%;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      .loans-wrap { padding: 16px; }
-      .summary-cards { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 480px) {
-      .summary-cards { grid-template-columns: 1fr; }
-    }
+    .dlg-save-btn:hover:not(:disabled) { background: #047857; }
+    .dlg-save-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
   `]
 })
 export class LoansComponent implements OnInit {
-  private readonly dataService = inject(MockDataService);
-  private readonly messageService = inject(MessageService);
-  private readonly authService = inject(AuthService);
+  private svc    = inject(MockDataService);
+  private auth   = inject(AuthService);
+  private msgSvc = inject(MessageService);
 
-  // ── Current user ID (resolved on init from auth service) ────────────────────
-  private readonly currentUserId = signal<number>(0);
+  fmtThb  = fmtThb;
+  fmtUsd  = fmtUsd;
+  fmtIdr  = fmtIdr;
+  fmtDate = fmtDate;
 
-  // ── Form state ──────────────────────────────────────────────────────────────
-  readonly repaymentDialogVisible = signal(false);
-  readonly selectedLoan = signal<Loan | null>(null);
-  repaymentAmount: number | null = null;
-  repaymentNote = '';
+  private currentUserId = signal<number | null>(null);
 
-  ngOnInit(): void {
-    const user = this.authService.getCurrentUser();
-    if (user) {
-      this.currentUserId.set(user.id);
-    }
-  }
+  // Live data — direct read from store
+  allLoans      = this.svc.loans;
+  activeTab     = signal<LoanTab>('iOwe');
+  dialogVisible = signal(false);
+  selectedLoan  = signal<Loan | null>(null);
 
-  // ── Computed: current user is lender (owed to me) or borrower (i owe) ──
-  readonly owedToMeLoans = computed(() =>
-    this.dataService.loans().filter(l =>
-      l.lenderId === this.currentUserId() &&
-      (l.status === 'UNSETTLED' || l.status === 'PARTIAL')
-    )
+  repayForm: RepaymentForm = { amount: null, notes: '' };
+
+  iOweLoans      = computed(() => this.allLoans().filter(l => l.borrowerId === this.currentUserId()));
+  owedToMeLoans  = computed(() => this.allLoans().filter(l => l.lenderId   === this.currentUserId()));
+  activeLoanList = computed(() => this.activeTab() === 'iOwe' ? this.iOweLoans() : this.owedToMeLoans());
+
+  owedToMe = computed(() =>
+    this.owedToMeLoans().filter(l => l.status !== 'FULLY_SETTLED')
+      .reduce((s, l) => s + (l.remainingBalance ?? l.amount ?? 0), 0)
   );
-
-  readonly iOweLoans = computed(() =>
-    this.dataService.loans().filter(l =>
-      l.borrowerId === this.currentUserId() &&
-      (l.status === 'UNSETTLED' || l.status === 'PARTIAL')
-    )
+  iOwe = computed(() =>
+    this.iOweLoans().filter(l => l.status !== 'FULLY_SETTLED')
+      .reduce((s, l) => s + (l.remainingBalance ?? l.amount ?? 0), 0)
   );
+  netPosition    = computed(() => this.owedToMe() - this.iOwe());
+  openLoansCount = computed(() => this.allLoans().filter(l => l.status !== 'FULLY_SETTLED').length);
 
-  readonly owedToMe = computed(() =>
-    this.owedToMeLoans().reduce((sum, l) => sum + this.getRemainingBalance(l), 0)
-  );
-
-  readonly iOwe = computed(() =>
-    this.iOweLoans().reduce((sum, l) => sum + this.getRemainingBalance(l), 0)
-  );
-
-  readonly netPosition = computed(() => this.owedToMe() - this.iOwe());
-
-  readonly openLoansCount = computed(() =>
-    this.dataService.loans().filter(l =>
-      (l.lenderId === this.currentUserId() || l.borrowerId === this.currentUserId()) &&
-      (l.status === 'UNSETTLED' || l.status === 'PARTIAL')
-    ).length
-  );
-
-  // ── Helpers ─────────────────────────────────────────────────────────────
-  fmtThb = fmtThb;
-
-  getUserName(userId: number): string {
-    return this.dataService.getUserById(userId)?.name ?? 'Unknown';
+  ngOnInit() {
+    this.currentUserId.set(this.auth.getCurrentUser()?.id ?? null);
   }
 
-  getRepaidPercent(loan: Loan): number {
-    const declared = loan.declaredRepayment ?? loan.amount ?? 0;
-    if (declared <= 0) return 0;
-    return Math.min(100, (loan.actualRepaid! / declared!) * 100);
+  openRepaymentDialog(loan: Loan | null) {
+    this.selectedLoan.set(loan);
+    this.repayForm = { amount: null, notes: '' };
+    this.dialogVisible.set(true);
   }
 
-  getRemainingBalance(loan: Loan): number {
-    return loan.remainingBalance ?? (loan.declaredRepayment ?? loan.amount ?? 0)  - (loan.actualRepaid ?? 0);
-  }
-
-  get isIOwe(): boolean {
-    const loan = this.selectedLoan();
-    return loan ? loan.borrowerId === this.currentUserId() : false;
-  }
-
-  // ── Repayment dialog ────────────────────────────────────────────────────
-  openRepaymentDialog(loan?: Loan): void {
-    if (loan) {
-      this.selectedLoan.set(loan);
-    } else {
-      // Default to first open loan
-      const firstOpen = this.iOweLoans().length > 0 ? this.iOweLoans()[0] : this.owedToMeLoans()[0];
-      this.selectedLoan.set(firstOpen ?? null);
-    }
-    this.repaymentDialogVisible.set(true);
-  }
-
-  closeRepaymentDialog(): void {
-    this.repaymentDialogVisible.set(false);
+  closeDialog() {
+    this.dialogVisible.set(false);
     this.selectedLoan.set(null);
-    this.repaymentAmount = null;
-    this.repaymentNote = '';
   }
 
-  confirmRepayment(): void {
+  isRepayFormValid(): boolean {
+    return !!(this.repayForm.amount && this.repayForm.amount > 0);
+  }
+
+  saveRepayment() {
+    if (!this.isRepayFormValid()) return;
+    const amount = this.repayForm.amount ?? 0;
     const loan = this.selectedLoan();
-    if (!loan || !this.repaymentAmount || this.repaymentAmount <= 0) return;
 
-    this.dataService.recordRepayment(loan.id!, this.repaymentAmount, this.repaymentNote);
-    this.messageService.add({
+    if (!loan || loan.id == null) {
+      this.msgSvc.add({ severity: 'warn', summary: 'No Loan Selected', detail: 'Please choose a loan to repay.' });
+      return;
+    }
+
+    this.svc.recordRepayment(loan.id, amount, this.repayForm.notes);
+
+    // Re-read the loan after update to determine outcome
+    const updated = this.svc.loans().find(l => l.id === loan.id);
+    const fullySettled = updated?.status === 'FULLY_SETTLED';
+    const remaining = updated?.remainingBalance ?? 0;
+
+    this.msgSvc.add({
       severity: 'success',
-      summary: 'Repayment Recorded',
-      detail: `${fmtThb(this.repaymentAmount)} repayment recorded successfully`
+      summary: fullySettled ? '✅ Fully Settled!' : '💰 Repayment Recorded',
+      detail: `${fmtThb(amount)} recorded${fullySettled ? ' — loan fully settled!' : ` · ${fmtThb(remaining)} remaining`}`,
     });
+    this.closeDialog();
+  }
 
-    this.closeRepaymentDialog();
+  remaining(loan: Loan): number { return loan.remainingBalance ?? loan.amount ?? 0; }
+
+  paidPct(loan: Loan): number {
+    const total = loan.amount ?? loan.totalAmount ?? 0;
+    if (total <= 0) return 0;
+    return Math.min(100, ((loan.actualRepaid ?? loan.paidAmount ?? 0) / total) * 100);
+  }
+
+  personName(loan: Loan): string {
+    const id = this.activeTab() === 'iOwe' ? loan.lenderId : loan.borrowerId;
+    return this.svc.getUserById(id ?? -1)?.name ?? loan.personName ?? '—';
+  }
+
+  personInitial(loan: Loan): string { return this.personName(loan).charAt(0).toUpperCase(); }
+
+  personColor(loan: Loan): string {
+    const map: Record<string, string> = { Syaeful: '#7c3aed', Winda: '#db2777', Dina: '#0891b2' };
+    return map[this.personName(loan)] ?? '#64748b';
   }
 }

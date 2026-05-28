@@ -40,8 +40,11 @@ public class ExpenseController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ExpenseDto>> getExpenseById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(expenseService.getExpenseById(id)));
+    public ResponseEntity<ApiResponse<ExpenseDto>> getExpenseById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.ok(expenseService.getExpenseById(id, requester)));
     }
 
     @GetMapping("/status/{status}")
@@ -73,11 +76,14 @@ public class ExpenseController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ExpenseDto>> updateExpense(
             @PathVariable Long id,
-            @RequestBody UpdateExpenseRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Expense updated", expenseService.updateExpense(id, request)));
+            @RequestBody UpdateExpenseRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.ok("Expense updated", expenseService.updateExpense(id, request, requester)));
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ExpenseDto>> approveExpense(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -86,13 +92,17 @@ public class ExpenseController {
     }
 
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ExpenseDto>> rejectExpense(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok("Expense rejected", expenseService.rejectExpense(id)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteExpense(@PathVariable Long id) {
-        expenseService.deleteExpense(id);
+    public ResponseEntity<ApiResponse<Void>> deleteExpense(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        expenseService.deleteExpense(id, user);
         return ResponseEntity.ok(ApiResponse.ok("Expense deleted", null));
     }
 }

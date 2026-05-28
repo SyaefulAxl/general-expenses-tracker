@@ -35,3 +35,4 @@ uploads/*
 # OS caches
 *.swp
 *.swo
+.gstack/

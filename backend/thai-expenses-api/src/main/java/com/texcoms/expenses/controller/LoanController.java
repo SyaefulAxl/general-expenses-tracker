@@ -8,6 +8,7 @@ import com.texcoms.expenses.service.LoanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,7 @@ public class LoanController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<LoanDto>>> getAllLoansAdmin() {
         return ResponseEntity.ok(ApiResponse.ok(loanService.getAllLoans()));
     }
@@ -43,8 +45,11 @@ public class LoanController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<LoanDto>> getLoanById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(loanService.getLoanById(id)));
+    public ResponseEntity<ApiResponse<LoanDto>> getLoanById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.ok(loanService.getLoanById(id, requester)));
     }
 
     @PostMapping
@@ -59,19 +64,27 @@ public class LoanController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<LoanDto>> updateLoan(
             @PathVariable Long id,
-            @RequestBody UpdateLoanRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Loan updated", loanService.updateLoan(id, request)));
+            @RequestBody UpdateLoanRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.ok("Loan updated", loanService.updateLoan(id, request, requester)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteLoan(@PathVariable Long id) {
-        loanService.deleteLoan(id);
+    public ResponseEntity<ApiResponse<Void>> deleteLoan(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        loanService.deleteLoan(id, requester);
         return ResponseEntity.ok(ApiResponse.ok("Loan deleted", null));
     }
 
     @PutMapping("/{id}/settle")
-    public ResponseEntity<ApiResponse<LoanDto>> settleLoan(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok("Loan settled", loanService.settleLoan(id)));
+    public ResponseEntity<ApiResponse<LoanDto>> settleLoan(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.ok("Loan settled", loanService.settleLoan(id, requester)));
     }
 
     @PostMapping("/{id}/repayments")
@@ -79,8 +92,8 @@ public class LoanController {
             @PathVariable Long id,
             @Valid @RequestBody CreateRepaymentRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
-        RepaymentDto repayment = loanService.addRepayment(id, request, user.getId());
+        User requester = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        RepaymentDto repayment = loanService.addRepayment(id, request, requester);
         return ResponseEntity.ok(ApiResponse.ok("Repayment recorded", repayment));
     }
 }
