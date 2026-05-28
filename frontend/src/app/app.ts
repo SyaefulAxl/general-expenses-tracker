@@ -81,7 +81,7 @@ import { filter } from 'rxjs/operators';
     .app-shell {
       display: flex;
       min-height: 100vh;
-      background: var(--bg-primary);
+      background: var(--surface-muted);
     }
 
     /* ── Main wrapper (right of sidebar) ───────────────────── */
@@ -97,8 +97,8 @@ import { filter } from 'rxjs/operators';
     /* ── Topbar ────────────────────────────────────────────── */
     .topbar {
       height: var(--topbar-height, 56px);
-      background: var(--topbar-bg);
-      border-bottom: 1px solid var(--border-color);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       display: flex;
       align-items: center;
@@ -124,7 +124,7 @@ import { filter } from 'rxjs/operators';
     .topbar-title {
       font-size: 1rem;
       font-weight: 700;
-      color: var(--text-primary);
+      color: var(--text);
       margin: 0;
       white-space: nowrap;
       overflow: hidden;
@@ -144,8 +144,8 @@ import { filter } from 'rxjs/operators';
       width: 34px;
       height: 34px;
       border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      background: var(--surface);
       color: var(--text-muted);
       align-items: center;
       justify-content: center;
@@ -156,8 +156,8 @@ import { filter } from 'rxjs/operators';
     }
 
     .hamburger:hover {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: var(--surface-muted);
+      color: var(--text);
     }
 
     /* ── Topbar user chip ──────────────────────────────────── */
@@ -167,8 +167,8 @@ import { filter } from 'rxjs/operators';
       gap: 10px;
       padding: 5px 10px 5px 5px;
       border-radius: 100px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      background: var(--surface);
     }
 
     .topbar-avatar {
@@ -195,7 +195,7 @@ import { filter } from 'rxjs/operators';
     .topbar-user-name {
       font-size: 0.825rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: var(--text);
       white-space: nowrap;
     }
 

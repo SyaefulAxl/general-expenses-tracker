@@ -130,7 +130,7 @@ interface NavItem {
     .sidebar-brand-title {
       font-weight: 700;
       font-size: 0.95rem;
-      color: var(--text-primary);
+      color: var(--text);
       line-height: 1.2;
     }
 
@@ -158,7 +158,7 @@ interface NavItem {
     }
 
     .sidebar-close:hover {
-      background: var(--bg-tertiary);
+      background: var(--surface-muted);
     }
 
     /* ── Navigation ────────────────────────────────────────── */
@@ -226,7 +226,7 @@ interface NavItem {
     }
 
     .nav-badge {
-      background: var(--accent-danger);
+      background: var(--danger);
       color: #ffffff;
       border-radius: 9999px;
       font-size: 0.6rem;
@@ -252,7 +252,7 @@ interface NavItem {
       gap: 10px;
       padding: 8px 8px;
       border-radius: 8px;
-      background: var(--bg-tertiary);
+      background: var(--surface-muted);
     }
 
     .sidebar-user-info {
@@ -266,7 +266,7 @@ interface NavItem {
     .sidebar-user-name {
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

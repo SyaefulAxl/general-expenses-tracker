@@ -22,7 +22,7 @@ import { CommonModule } from '@angular/common';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--bg-primary);
+      background: var(--surface-muted);
     }
 
     .loading-content {
@@ -36,7 +36,7 @@ import { CommonModule } from '@angular/common';
       width: 56px;
       height: 56px;
       border-radius: 14px;
-      background: var(--accent-primary);
+      background: var(--accent);
       color: white;
       display: flex;
       align-items: center;
@@ -49,7 +49,7 @@ import { CommonModule } from '@angular/common';
     .brand-text {
       font-size: 1.1rem;
       font-weight: 700;
-      color: var(--text-primary);
+      color: var(--text);
     }
 
     .spinner-wrapper {
@@ -59,8 +59,8 @@ import { CommonModule } from '@angular/common';
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--border-color);
-      border-top-color: var(--accent-primary);
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
