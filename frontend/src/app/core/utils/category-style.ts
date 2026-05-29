@@ -6,13 +6,20 @@ export interface CategoryStyle {
 }
 
 const STYLES: Record<string, CategoryStyle> = {
+  // Kategori Bahasa Indonesia
+  Travelling:    { icon: 'pi-car',           tone: 'accent'  },
+  Makan:         { icon: 'pi-shopping-bag',  tone: 'warning' },
+  Grosir:        { icon: 'pi-shopping-cart', tone: 'info'    },
+  Belanja:       { icon: 'pi-tags',          tone: 'accent'  },
+  Entertainment: { icon: 'pi-ticket',        tone: 'danger'  },
+  Lainnya:       { icon: 'pi-box',           tone: 'neutral' },
+  // Legacy English keys (back-compat with older stored data)
   Transport:     { icon: 'pi-car',           tone: 'accent'  },
   Food:          { icon: 'pi-shopping-bag',  tone: 'warning' },
   Accommodation: { icon: 'pi-home',          tone: 'info'    },
-  Entertainment: { icon: 'pi-ticket',        tone: 'danger'  },
   Other:         { icon: 'pi-box',           tone: 'neutral' },
 };
 
 export function categoryStyle(category: string | undefined | null): CategoryStyle {
-  return STYLES[category ?? ''] ?? STYLES['Other'];
+  return STYLES[category ?? ''] ?? STYLES['Lainnya'];
 }

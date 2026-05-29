@@ -1,0 +1,16 @@
+/* Sakai shell layout styling, ported into the General Expenses app.
+   Tailwind + primeicons are already imported by src/styles.css, so they are
+   NOT re-imported here. `_typography.scss` is intentionally omitted to avoid
+   restyling feature-page headings (feature pages stay unchanged). */
+@use './variables/common';
+@use './variables/light';
+@use './variables/dark';
+@use './mixins';
+@use './preloading';
+@use './core';
+@use './main';
+@use './topbar';
+@use './menu';
+@use './footer';
+@use './responsive';
+@use './utils';

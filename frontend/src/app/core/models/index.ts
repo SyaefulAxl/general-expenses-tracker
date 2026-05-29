@@ -3,6 +3,13 @@ export type ExpenseStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type LoanStatus = 'UNSETTLED' | 'PARTIAL' | 'FULLY_SETTLED' | 'OVERPAID';
 export type LoanType = 'I_OWE' | 'OWED_TO_ME';
 
+/** Pengeluaran pribadi vs. resmi kantor (yang resmi bisa di-export untuk reimburse). */
+export type ExpenseType = 'PERSONAL' | 'OFFICIAL';
+
+/** Kategori pengeluaran (Bahasa Indonesia). */
+export const EXPENSE_CATEGORIES = ['Travelling', 'Makan', 'Grosir', 'Belanja', 'Entertainment', 'Lainnya'] as const;
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+
 export interface User {
   id: number;
   name: string;
@@ -20,6 +27,7 @@ export interface Expense {
   description: string;
   amount: number;
   category: string;
+  type?: ExpenseType;
   expenseDate: string;
   status: ExpenseStatus;
   notes?: string;

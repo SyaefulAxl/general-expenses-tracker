@@ -43,6 +43,16 @@ export class StatusBadgeComponent {
   }
 
   get label(): string {
-    return this.status.replace(/_/g, ' ');
+    const labels: Record<string, string> = {
+      'DRAFT':         'Draf',
+      'PENDING':       'Menunggu',
+      'APPROVED':      'Disetujui',
+      'REJECTED':      'Ditolak',
+      'UNSETTLED':     'Belum Lunas',
+      'PARTIAL':       'Sebagian',
+      'FULLY_SETTLED': 'Lunas',
+      'OVERPAID':      'Lebih Bayar',
+    };
+    return labels[this.status] ?? this.status.replace(/_/g, ' ');
   }
 }

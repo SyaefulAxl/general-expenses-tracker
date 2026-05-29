@@ -14,6 +14,11 @@
 @import "tailwindcss";
 @import "tailwindcss-primeui";
 
+/* Tailwind v4 dark variant — keyed off `.dark` on <html> (the shared
+   dark-mode bridge), so Sakai shell utilities like `dark:bg-surface-900`
+   used by the configurator track the same toggle as PrimeNG + GE tokens. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================================
    CSS Custom Properties — 19 final tokens, no legacy aliases
    ============================================================ */
@@ -82,6 +87,53 @@
   --radius-sm: 6px;
   --radius:    10px;
   --radius-lg: 16px;
+}
+
+/* ============================================================
+   Dark theme — toggled by adding `.dark` to <html>
+   (PrimeNG darkModeSelector is set to `.dark` in app.config)
+   ============================================================ */
+:root.dark {
+  --accent:       #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-soft:  rgba(59,130,246,0.18);
+
+  --surface:        #1e293b;   /* cards */
+  --surface-muted:  #0f172a;   /* page background */
+  --surface-sunken: #334155;
+
+  --border:        #334155;
+  --border-strong: #475569;
+
+  --text:        #f1f5f9;
+  --text-muted:  #cbd5e1;
+  --text-subtle: #94a3b8;
+  --text-faint:  #64748b;
+
+  --success:      #34d399;
+  --success-soft: rgba(52,211,153,0.16);
+  --warning:      #fbbf24;
+  --warning-soft: rgba(251,191,36,0.16);
+  --danger:       #f87171;
+  --danger-soft:  rgba(248,113,113,0.16);
+  --info:         #22d3ee;
+  --info-soft:    rgba(34,211,238,0.16);
+
+  /* Sidebar stays dark navy but sits flush against the dark page */
+  --sidebar-bg:          #0b1120;
+  --sidebar-border:      rgba(255,255,255,0.08);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+  --shadow:    0 1px 4px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.45);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.55);
+
+  color-scheme: dark;
+}
+
+/* Smooth the theme switch */
+body, .app-shell, .topbar, .card, .table-card, .filters-bar, .summary-chip {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 /* ============================================================
@@ -339,46 +391,485 @@ textarea.form-input      { resize: vertical; min-height: 80px; }
 }
 
 /* ============================================================
-   PrimeNG v21 — Other components
+   PrimeNG v21 — GLOBAL "Sakai" theme
+   Token-based, dark-mode-correct (tokens flip automatically).
+   Body-level overlays (datepicker / select panels) can ONLY be
+   reached from this global stylesheet — that's why the polish
+   for the datepicker + select lives here, not in components.
    ============================================================ */
+
+/* ── Text inputs / number / textarea — one consistent control ── */
+.p-inputtext,
+.p-inputnumber-input,
+.p-textarea,
+textarea.p-inputtext,
+input.p-inputtext {
+  font-family: var(--font-sans) !important;
+  font-size: var(--fs-sm) !important;
+  color: var(--text) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0.55rem 0.75rem !important;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s !important;
+}
+.p-inputtext::placeholder,
+.p-textarea::placeholder,
+textarea.p-inputtext::placeholder { color: var(--text-faint) !important; }
+
+.p-inputtext:enabled:hover,
+.p-inputnumber-input:enabled:hover,
+.p-textarea:enabled:hover { border-color: var(--border-strong) !important; }
+
+.p-inputtext:enabled:focus,
+.p-inputtext.p-focus,
+.p-inputnumber-input:enabled:focus,
+.p-textarea:enabled:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+  outline: none !important;
+}
+.p-inputtext.p-invalid,
+.p-textarea.p-invalid { border-color: var(--danger) !important; }
+.p-inputtext:disabled,
+.p-textarea:disabled {
+  background: var(--surface-muted) !important;
+  color: var(--text-faint) !important;
+  cursor: not-allowed !important;
+}
+.p-textarea { resize: vertical !important; min-height: 80px !important; }
+
+.p-inputtext-sm { font-size: var(--fs-xs) !important; padding: 0.4rem 0.6rem !important; }
+
+/* ── InputNumber wrapper ──────────────────────────────────── */
+.p-inputnumber { width: 100% !important; }
+.p-inputnumber .p-inputnumber-input { width: 100% !important; }
+
+/* ── IconField (search inputs etc.) ───────────────────────── */
+.p-iconfield .p-inputicon { color: var(--text-faint) !important; }
+
+/* ── InputGroup + addon — seamless join ───────────────────── */
+.p-inputgroup { border-radius: var(--radius-sm) !important; }
+.p-inputgroupaddon,
+.p-inputgroup-addon {
+  background: var(--surface-muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-faint) !important;
+  padding: 0 0.75rem !important;
+}
+.p-inputgroup > .p-inputtext,
+.p-inputgroup > .p-inputnumber > .p-inputnumber-input,
+.p-inputgroup > .p-select { border-radius: 0 !important; }
+.p-inputgroup > *:first-child,
+.p-inputgroup > *:first-child .p-inputnumber-input {
+  border-top-left-radius: var(--radius-sm) !important;
+  border-bottom-left-radius: var(--radius-sm) !important;
+}
+.p-inputgroup > *:last-child,
+.p-inputgroup > *:last-child .p-inputnumber-input {
+  border-top-right-radius: var(--radius-sm) !important;
+  border-bottom-right-radius: var(--radius-sm) !important;
+}
+
+/* ── Select (dropdown) — closed control ───────────────────── */
+.p-select {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+.p-select:not(.p-disabled):hover { border-color: var(--border-strong) !important; }
+.p-select:not(.p-disabled).p-focus,
+.p-select:not(.p-disabled).p-select-open {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+.p-select .p-select-label {
+  color: var(--text) !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.55rem 0.75rem !important;
+}
+.p-select .p-select-label.p-placeholder { color: var(--text-faint) !important; }
+.p-select .p-select-dropdown { color: var(--text-faint) !important; width: 2.25rem !important; }
+
+/* ── Select OVERLAY (body-level panel) — named complaint ──── */
+.p-select-overlay {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden !important;
+  margin-top: 4px !important;
+}
+.p-select-overlay .p-select-header {
+  padding: 0.65rem 0.65rem 0.45rem !important;
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.p-select-overlay .p-select-header .p-inputtext { width: 100% !important; }
+
+.p-select-overlay .p-select-list-container { background: var(--surface) !important; }
+.p-select-overlay .p-select-list {
+  padding: 0.4rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+.p-select-overlay .p-select-option {
+  color: var(--text) !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.55rem 0.7rem !important;
+  border-radius: var(--radius-sm) !important;
+  transition: background-color 0.12s, color 0.12s !important;
+}
+.p-select-overlay .p-select-option:not(.p-select-option-selected):not(.p-disabled).p-focus,
+.p-select-overlay .p-select-option:not(.p-select-option-selected):not(.p-disabled):hover {
+  background: var(--surface-muted) !important;
+  color: var(--text) !important;
+}
+.p-select-overlay .p-select-option.p-select-option-selected {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  font-weight: 600 !important;
+}
+.p-select-overlay .p-select-option.p-select-option-selected.p-focus {
+  background: var(--accent-soft) !important;
+}
+.p-select-overlay .p-select-empty-message {
+  color: var(--text-faint) !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.7rem !important;
+}
+
+/* MultiSelect shares the same overlay language */
+.p-multiselect-overlay {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden !important;
+}
+.p-multiselect-overlay .p-multiselect-list { padding: 0.4rem !important; }
+.p-multiselect-overlay .p-multiselect-option {
+  color: var(--text) !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.55rem 0.7rem !important;
+  border-radius: var(--radius-sm) !important;
+}
+.p-multiselect-overlay .p-multiselect-option:not(.p-disabled):hover {
+  background: var(--surface-muted) !important;
+}
+.p-multiselect-overlay .p-multiselect-option.p-multiselect-option-selected {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+
+/* ── DatePicker — closed control reuses input look ────────── */
+.p-datepicker .p-inputtext { width: 100% !important; }
+.p-datepicker-dropdown { color: var(--text-faint) !important; }
+
+/* ── DatePicker PANEL (body-level) — named complaint ──────── */
+.p-datepicker-panel {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 0.75rem !important;
+  margin-top: 4px !important;
+}
+
+/* Header: month / year title + prev/next nav */
+.p-datepicker-panel .p-datepicker-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 0.25rem 0.25rem 0.6rem !important;
+  margin-bottom: 0.5rem !important;
+}
+.p-datepicker-panel .p-datepicker-title {
+  display: flex !important;
+  gap: 0.35rem !important;
+}
+.p-datepicker-panel .p-datepicker-select-month,
+.p-datepicker-panel .p-datepicker-select-year {
+  color: var(--text) !important;
+  font-weight: 700 !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.3rem 0.5rem !important;
+  border-radius: var(--radius-sm) !important;
+  transition: background-color 0.12s, color 0.12s !important;
+}
+.p-datepicker-panel .p-datepicker-select-month:hover,
+.p-datepicker-panel .p-datepicker-select-year:hover {
+  background: var(--surface-muted) !important;
+  color: var(--accent) !important;
+}
+.p-datepicker-panel .p-datepicker-prev-button,
+.p-datepicker-panel .p-datepicker-next-button {
+  color: var(--text-subtle) !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  border-radius: var(--radius-sm) !important;
+  transition: background-color 0.12s, color 0.12s !important;
+}
+.p-datepicker-panel .p-datepicker-prev-button:hover,
+.p-datepicker-panel .p-datepicker-next-button:hover {
+  background: var(--surface-muted) !important;
+  color: var(--accent) !important;
+}
+
+/* Weekday header */
+.p-datepicker-panel .p-datepicker-weekday {
+  color: var(--text-faint) !important;
+  font-size: var(--fs-xs) !important;
+  font-weight: 700 !important;
+}
+
+/* Day cells */
+.p-datepicker-panel table { font-size: var(--fs-sm) !important; }
+.p-datepicker-panel .p-datepicker-day-cell { padding: 1px !important; }
+.p-datepicker-panel .p-datepicker-day {
+  color: var(--text) !important;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  border-radius: 999px !important;
+  transition: background-color 0.12s, color 0.12s, box-shadow 0.12s !important;
+}
+.p-datepicker-panel .p-datepicker-day:not(.p-datepicker-day-selected):not(.p-disabled):hover {
+  background: var(--surface-muted) !important;
+}
+.p-datepicker-panel .p-datepicker-day-today .p-datepicker-day,
+.p-datepicker-panel .p-datepicker-day.p-datepicker-day-today {
+  box-shadow: inset 0 0 0 1.5px var(--accent) !important;
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+}
+.p-datepicker-panel .p-datepicker-day-selected,
+.p-datepicker-panel .p-datepicker-day.p-datepicker-day-selected {
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+.p-datepicker-panel .p-datepicker-day.p-disabled { color: var(--text-faint) !important; opacity: 0.5 !important; }
+.p-datepicker-panel .p-datepicker-weeknumber { color: var(--text-faint) !important; }
+
+/* Month / year picker grids */
+.p-datepicker-panel .p-datepicker-month-view,
+.p-datepicker-panel .p-datepicker-year-view {
+  margin-top: 0.25rem !important;
+}
+.p-datepicker-panel .p-datepicker-month,
+.p-datepicker-panel .p-datepicker-year {
+  color: var(--text) !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.5rem !important;
+  border-radius: var(--radius-sm) !important;
+  transition: background-color 0.12s, color 0.12s !important;
+}
+.p-datepicker-panel .p-datepicker-month:not(.p-disabled):hover,
+.p-datepicker-panel .p-datepicker-year:not(.p-disabled):hover {
+  background: var(--surface-muted) !important;
+}
+.p-datepicker-panel .p-datepicker-month.p-datepicker-month-selected,
+.p-datepicker-panel .p-datepicker-year.p-datepicker-year-selected {
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+/* Footer (Today / Clear buttons) */
+.p-datepicker-panel .p-datepicker-buttonbar {
+  border-top: 1px solid var(--border) !important;
+  padding-top: 0.6rem !important;
+  margin-top: 0.5rem !important;
+}
+
+/* ── Checkbox — brand accent when checked ─────────────────── */
+.p-checkbox .p-checkbox-box {
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 5px !important;
+  background: var(--surface) !important;
+  transition: border-color 0.12s, background-color 0.12s, box-shadow 0.12s !important;
+}
+.p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box { border-color: var(--accent) !important; }
+.p-checkbox.p-checkbox-checked .p-checkbox-box {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+}
+.p-checkbox .p-checkbox-icon { color: #fff !important; }
+.p-checkbox:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box {
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+
+/* ── RadioButton — brand accent ───────────────────────────── */
+.p-radiobutton .p-radiobutton-box {
+  border: 1px solid var(--border-strong) !important;
+  background: var(--surface) !important;
+}
+.p-radiobutton.p-radiobutton-checked .p-radiobutton-box {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+}
+.p-radiobutton .p-radiobutton-icon { background: #fff !important; }
+
+/* ── ToggleSwitch — brand accent when on ──────────────────── */
+.p-toggleswitch .p-toggleswitch-slider {
+  background: var(--surface-sunken) !important;
+  border-radius: 999px !important;
+  transition: background-color 0.15s !important;
+}
+.p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider { background: var(--accent) !important; }
+.p-toggleswitch .p-toggleswitch-handle { background: var(--surface) !important; }
+.p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-handle { background: #fff !important; }
+.p-toggleswitch:not(.p-disabled):has(.p-toggleswitch-input:focus-visible) .p-toggleswitch-slider {
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
 .p-button {
   border-radius: var(--radius) !important;
   font-weight: 600 !important;
-  font-size: 0.825rem !important;
+  font-size: var(--fs-sm) !important;
+  padding: 0.55rem 1.05rem !important;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s !important;
+}
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-secondary) {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-secondary):enabled:hover {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.28) !important;
+}
+.p-button.p-button-sm { padding: 0.4rem 0.75rem !important; font-size: var(--fs-xs) !important; }
+.p-button.p-button-icon-only { padding: 0.5rem !important; }
+.p-button:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft) !important; outline: none !important; }
+
+/* Outlined / text / secondary should sit on tokens, not raw greys */
+.p-button.p-button-outlined {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.p-button.p-button-outlined:enabled:hover {
+  background: var(--surface-muted) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text) !important;
+}
+.p-button.p-button-text {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--accent) !important;
+}
+.p-button.p-button-text:enabled:hover { background: var(--accent-soft) !important; }
+.p-button.p-button-secondary {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.p-button.p-button-secondary:enabled:hover {
+  background: var(--surface-muted) !important;
+  border-color: var(--border-strong) !important;
+}
+.p-button.p-button-danger {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+  color: #fff !important;
+}
+.p-button.p-button-success {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+  color: #fff !important;
 }
 
-.p-datatable .p-datatable-thead > tr > th {
-  background: var(--surface-muted) !important;
-  font-size: 0.68rem !important;
-  font-weight: 700 !important;
-  color: var(--text-subtle) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
-  padding: 10px 14px !important;
+/* ── Table (used by app-expense-list) ─────────────────────── */
+.p-datatable { border-radius: var(--radius-lg) !important; overflow: hidden !important; }
+.p-datatable .p-datatable-header {
+  background: var(--surface) !important;
   border-color: var(--border) !important;
 }
-
-.p-datatable .p-datatable-tbody > tr > td {
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--surface-muted) !important;
+  font-size: var(--fs-xs) !important;
+  font-weight: 700 !important;
+  color: var(--text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
   padding: 11px 14px !important;
-  font-size: 0.84rem !important;
+  border-color: var(--border) !important;
+}
+.p-datatable .p-datatable-tbody > tr {
+  background: var(--surface) !important;
+  color: var(--text-muted) !important;
+  transition: background-color 0.12s !important;
+}
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: 12px 14px !important;
+  font-size: var(--fs-sm) !important;
+  color: var(--text-muted) !important;
   border-color: var(--surface-sunken) !important;
   vertical-align: middle !important;
 }
-
+.p-datatable .p-datatable-tbody > tr:last-child > td { border-bottom: 0 !important; }
 .p-datatable .p-datatable-tbody > tr:hover > td { background: var(--surface-muted) !important; }
+.p-datatable .p-sortable-column.p-highlight,
+.p-datatable .p-sortable-column:hover { color: var(--accent) !important; }
+.p-datatable .p-datatable-emptymessage > td { color: var(--text-faint) !important; }
 
+/* ── Paginator ────────────────────────────────────────────── */
 .p-paginator {
   background: var(--surface) !important;
   border-top: 1px solid var(--border) !important;
   padding: 10px 16px !important;
-  font-size: 0.8rem !important;
+  font-size: var(--fs-sm) !important;
+  color: var(--text-muted) !important;
+}
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-last {
+  color: var(--text-muted) !important;
+  border-radius: var(--radius-sm) !important;
+  min-width: 2.25rem !important;
+  height: 2.25rem !important;
+  transition: background-color 0.12s, color 0.12s !important;
+}
+.p-paginator .p-paginator-page:not(.p-disabled):not(.p-paginator-page-selected):hover,
+.p-paginator .p-paginator-first:not(.p-disabled):hover,
+.p-paginator .p-paginator-prev:not(.p-disabled):hover,
+.p-paginator .p-paginator-next:not(.p-disabled):hover,
+.p-paginator .p-paginator-last:not(.p-disabled):hover { background: var(--surface-muted) !important; }
+.p-paginator .p-paginator-page.p-paginator-page-selected {
+  background: var(--accent) !important;
+  color: #fff !important;
 }
 
-.p-select             { border-radius: var(--radius-sm) !important; }
-.p-select-overlay     { border-radius: var(--radius) !important; box-shadow: var(--shadow-md) !important; background: var(--surface) !important; }
-.p-datepicker-panel   { border-radius: var(--radius) !important; box-shadow: var(--shadow-md) !important; background: var(--surface) !important; }
-.p-inputnumber-input  { border-radius: var(--radius-sm) !important; }
-.p-checkbox .p-checkbox-box { border-radius: 4px !important; }
+/* ── Tooltip ──────────────────────────────────────────────── */
+.p-tooltip .p-tooltip-text {
+  background: var(--text) !important;
+  color: var(--surface) !important;
+  font-size: var(--fs-xs) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Overlay scrollbar — subtle, themed (webkit) ──────────── */
+.p-select-overlay .p-select-list-container::-webkit-scrollbar,
+.p-multiselect-overlay .p-multiselect-list-container::-webkit-scrollbar,
+.p-select-overlay .p-virtualscroller::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+.p-select-overlay .p-select-list-container::-webkit-scrollbar-thumb,
+.p-multiselect-overlay .p-multiselect-list-container::-webkit-scrollbar-thumb,
+.p-select-overlay .p-virtualscroller::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong) !important;
+  border-radius: 999px !important;
+  border: 2px solid var(--surface) !important;
+}
+.p-select-overlay .p-select-list-container::-webkit-scrollbar-track,
+.p-multiselect-overlay .p-multiselect-list-container::-webkit-scrollbar-track,
+.p-select-overlay .p-virtualscroller::-webkit-scrollbar-track { background: transparent !important; }
 
 /* ============================================================
    Currency Display Block

@@ -7,23 +7,35 @@ import { User } from '@core/models';
 import { fmtThb, fmtUsd, fmtIdr, fmtDate, THB_TO_USD, THB_TO_IDR } from '@core/utils/currency.utils';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { AvatarComponent } from '@shared/components/avatar/avatar.component';
+import { ChartModule } from 'primeng/chart';
 
 type Tone = 'accent' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 const CATEGORY_ICONS: Record<string, string> = {
-  'Transport':     'pi-car',
-  'Food':          'pi-shopping-bag',
-  'Accommodation': 'pi-home',
+  'Travelling':    'pi-car',
+  'Makan':         'pi-shopping-bag',
+  'Grosir':        'pi-shopping-cart',
+  'Belanja':       'pi-tags',
   'Entertainment': 'pi-ticket',
-  'Other':         'pi-box',
+  'Lainnya':       'pi-box',
 };
 
 const CATEGORY_TONES: Record<string, Tone> = {
-  'Transport':     'accent',
-  'Food':          'warning',
-  'Accommodation': 'info',
+  'Travelling':    'accent',
+  'Makan':         'warning',
+  'Grosir':        'info',
+  'Belanja':       'success',
   'Entertainment': 'danger',
-  'Other':         'neutral',
+  'Lainnya':       'neutral',
+};
+
+const TONE_HEX: Record<Tone, string> = {
+  accent:  '#3b82f6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger:  '#ef4444',
+  info:    '#06b6d4',
+  neutral: '#94a3b8',
 };
 
 interface CategoryStat {
@@ -38,7 +50,7 @@ interface CategoryStat {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusBadgeComponent, AvatarComponent],
+  imports: [CommonModule, FormsModule, StatusBadgeComponent, AvatarComponent, ChartModule],
   template: `
     <div class="dash">
 
@@ -47,11 +59,11 @@ interface CategoryStat {
         <div class="dash-header-left">
           <div class="trip-badge">🇹🇭 Thailand Trip · May 7–16, 2026</div>
           <h1 class="dash-title">Dashboard</h1>
-          <p class="dash-subtitle">Welcome back, <strong>{{ currentUser()?.name || 'User' }}</strong> — here's your financial overview.</p>
+          <p class="dash-subtitle">Selamat datang, <strong>{{ currentUser()?.name || 'User' }}</strong> — ringkasan keuangan Anda.</p>
         </div>
         <div class="dash-header-right">
           <div class="rate-bar">
-            <span class="rate-label">Today's rates</span>
+            <span class="rate-label">Kurs hari ini</span>
             <span class="rate-pill tone-warning num">฿1</span>
             <span class="rate-eq">=</span>
             <span class="rate-pill tone-success num">\${{ rateUsd }}</span>
@@ -66,7 +78,7 @@ interface CategoryStat {
         <div class="kpi-card kpi-accent">
           <div class="kpi-icon-wrap tone-accent"><i class="pi pi-wallet"></i></div>
           <div class="kpi-info">
-            <div class="kpi-label">My total spend</div>
+            <div class="kpi-label">Total pengeluaran saya</div>
             <div class="kpi-val num">{{ fmtThb(myTotal()) }}</div>
             <div class="kpi-subs num">
               <span>{{ fmtUsd(myTotal()) }}</span>
@@ -78,7 +90,7 @@ interface CategoryStat {
         <div class="kpi-card kpi-success">
           <div class="kpi-icon-wrap tone-success"><i class="pi pi-users"></i></div>
           <div class="kpi-info">
-            <div class="kpi-label">Team total</div>
+            <div class="kpi-label">Total tim</div>
             <div class="kpi-val num text-success">{{ fmtThb(teamTotal()) }}</div>
             <div class="kpi-subs num">
               <span>{{ fmtUsd(teamTotal()) }}</span>
@@ -90,9 +102,9 @@ interface CategoryStat {
         <div class="kpi-card kpi-info">
           <div class="kpi-icon-wrap tone-info"><i class="pi pi-list"></i></div>
           <div class="kpi-info">
-            <div class="kpi-label">My expenses</div>
+            <div class="kpi-label">Pengeluaran saya</div>
             <div class="kpi-val num text-info">{{ myExpenses().length }}</div>
-            <div class="kpi-subs"><span>transactions</span></div>
+            <div class="kpi-subs"><span>transaksi</span></div>
           </div>
         </div>
         <div class="kpi-card" [class.kpi-warning]="pendingCount() > 0">
@@ -100,9 +112,9 @@ interface CategoryStat {
             <i class="pi pi-clock"></i>
           </div>
           <div class="kpi-info">
-            <div class="kpi-label">Pending review</div>
+            <div class="kpi-label">Menunggu review</div>
             <div class="kpi-val num" [class.text-warning]="pendingCount() > 0">{{ pendingCount() }}</div>
-            <div class="kpi-subs"><span>awaiting approval</span></div>
+            <div class="kpi-subs"><span>menunggu persetujuan</span></div>
           </div>
         </div>
       </div>
@@ -110,8 +122,8 @@ interface CategoryStat {
       <!-- ── Net Position Strip ─────────────────────────────────── -->
       <div class="net-strip" [class.net-positive]="netPosition() >= 0" [class.net-negative]="netPosition() < 0">
         <div class="net-strip-left">
-          <div class="net-strip-label">Net position</div>
-          <div class="net-strip-sub">Owed to you minus what you owe</div>
+          <div class="net-strip-label">Posisi bersih</div>
+          <div class="net-strip-sub">Piutang dikurangi utang Anda</div>
         </div>
         <div class="net-strip-right">
           <div class="net-strip-val num" [class.num-pos]="netPosition() >= 0" [class.num-neg]="netPosition() < 0">
@@ -129,11 +141,15 @@ interface CategoryStat {
         <!-- Category Breakdown -->
         <div class="dash-card">
           <div class="dash-card-header">
-            <span class="dash-card-title">My spending by category</span>
+            <span class="dash-card-title">Pengeluaran per kategori</span>
           </div>
           <div class="dash-card-body">
             @if (categoryStats().length === 0) {
-              <div class="empty-msg">No expenses yet</div>
+              <div class="empty-msg">Belum ada pengeluaran</div>
+            } @else {
+              <div class="cat-chart">
+                <p-chart type="doughnut" [data]="categoryChartData()" [options]="categoryChartOptions" [style]="{ height: '220px' }"></p-chart>
+              </div>
             }
             @for (cat of categoryStats(); track cat.name) {
               <div class="cat-row">
@@ -161,7 +177,7 @@ interface CategoryStat {
         <!-- Recent Expenses -->
         <div class="dash-card">
           <div class="dash-card-header">
-            <span class="dash-card-title">Recent expenses</span>
+            <span class="dash-card-title">Pengeluaran terbaru</span>
             <span class="dash-card-badge">Last 5</span>
           </div>
           <div class="dash-card-body flush">
@@ -202,7 +218,7 @@ interface CategoryStat {
         <!-- Team Comparison -->
         <div class="dash-card">
           <div class="dash-card-header">
-            <span class="dash-card-title">Team spending</span>
+            <span class="dash-card-title">Pengeluaran tim</span>
           </div>
           <div class="dash-card-body">
             <div class="team-list">
@@ -234,7 +250,7 @@ interface CategoryStat {
         <!-- Loans Summary -->
         <div class="dash-card">
           <div class="dash-card-header">
-            <span class="dash-card-title">Loan summary</span>
+            <span class="dash-card-title">Ringkasan pinjaman</span>
           </div>
           <div class="dash-card-body">
             <div class="loan-halves">
@@ -509,7 +525,7 @@ export class DashboardComponent implements OnInit {
   protected fmtIdr = fmtIdr;
   protected fmtDate = fmtDate;
 
-  protected currentUser = signal<User | null>(null);
+  protected currentUser = this.auth.currentUser;
 
   // Live data — direct read from store
   private allExpenses = this.svc.expenses;
@@ -579,7 +595,30 @@ export class DashboardComponent implements OnInit {
 
   protected netPosition = computed(() => this.owedToMe() - this.iOwe());
 
-  ngOnInit(): void {
-    this.currentUser.set(this.auth.getCurrentUser());
-  }
+  // Doughnut chart data for "spending by category" (chart.js via p-chart).
+  protected categoryChartData = computed(() => {
+    const stats = this.categoryStats();
+    return {
+      labels: stats.map(s => s.name),
+      datasets: [{
+        data: stats.map(s => Math.round(s.total)),
+        backgroundColor: stats.map(s => TONE_HEX[s.tone]),
+        borderWidth: 0,
+        hoverOffset: 6,
+      }],
+    };
+  });
+
+  protected categoryChartOptions = {
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
+      },
+    },
+    maintainAspectRatio: false,
+  };
+
+  ngOnInit(): void {}
 }

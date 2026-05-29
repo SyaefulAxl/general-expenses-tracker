@@ -1,0 +1,8 @@
+/* NOTE: Sakai's original `_core.scss` also restyled `html`/`body`
+   (font-size: 14px, Lato font, surface-ground background). Those are
+   intentionally omitted here so GE's own body typography (Inter) and
+   feature-page tokens in styles.css remain authoritative. Only the layout
+   wrapper rule is ported. */
+.layout-wrapper {
+    min-height: 100vh;
+}

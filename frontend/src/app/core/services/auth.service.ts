@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -16,7 +16,9 @@ export interface AuthResponse {
     username: string;
     email: string;
     role: string;
-    isActive: boolean;
+    isActive?: boolean;
+    // Jackson may serialize the boolean `isActive` field as `active`.
+    active?: boolean;
   };
   roles: string[];
 }
@@ -28,24 +30,35 @@ export class AuthService {
   private tokenKey = 'gen_expenses_token';
   private userKey = 'gen_expenses_user';
 
+  /**
+   * Reactive current user. Initialised from localStorage so a page refresh
+   * keeps the session, and updated synchronously on login/logout so every
+   * consumer (shell topbar, sidebar, feature pages) reacts immediately.
+   * This is the fix for "after login the user is not detected".
+   */
+  readonly currentUser = signal<User | null>(this.readUserFromStorage());
+
   login(username: string, password: string): Observable<User> {
     return this.http.post<AuthResponse>(`${this.base}/login`, { username, password } as LoginRequest).pipe(
       tap((res) => {
-        if (res.token) {
+        if (res?.token) {
           localStorage.setItem(this.tokenKey, res.token);
         }
       }),
       map((res) => {
+        const src = res.user;
         const user: User = {
-          id: res.user.id,
-          name: res.user.name,
-          username: res.user.username,
-          email: res.user.email,
-          role: res.user.role as User['role'],
-          isActive: res.user.isActive,
+          id: src.id,
+          name: src.name,
+          username: src.username,
+          email: src.email,
+          role: (src.role as User['role']) ?? 'MEMBER',
+          // Backend `isActive` may arrive as `active` depending on Jackson.
+          isActive: src.isActive ?? src.active ?? true,
           isSystem: false,
         };
         localStorage.setItem(this.userKey, JSON.stringify(user));
+        this.currentUser.set(user);
         return user;
       })
     );
@@ -54,6 +67,7 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
+    this.currentUser.set(null);
   }
 
   getToken(): string | null {
@@ -61,16 +75,21 @@ export class AuthService {
   }
 
   getCurrentUser(): User | null {
-    const raw = localStorage.getItem(this.userKey);
-    if (!raw) return null;
-    try { return JSON.parse(raw) as User; } catch { return null; }
+    return this.currentUser();
   }
 
   setCurrentUser(user: User): void {
     localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUser.set(user);
   }
 
   isLoggedIn(): boolean {
-    return this.getToken() !== null;
+    return this.getToken() !== null && this.currentUser() !== null;
+  }
+
+  private readUserFromStorage(): User | null {
+    const raw = localStorage.getItem(this.userKey);
+    if (!raw) return null;
+    try { return JSON.parse(raw) as User; } catch { return null; }
   }
 }
