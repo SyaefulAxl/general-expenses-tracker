@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, computed, inject, PLATFORM_ID, signal } from '@angular/core';
+import { Component, computed, effect, inject, PLATFORM_ID, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { $t, updatePreset, updateSurfacePalette } from '@primeng/themes';
@@ -116,6 +116,17 @@ export class AppConfigurator {
         { label: 'Static', value: 'static' },
         { label: 'Overlay', value: 'overlay' }
     ];
+
+    constructor() {
+        // Bridge the configurator selection into GE's own design tokens so
+        // changing Primary/Surface recolors the feature pages too, theme-aware.
+        // Re-runs whenever primary/surface/preset/dark changes.
+        effect(() => {
+            this.layoutService.layoutConfig();
+            this.primaryColors();
+            this.syncGeTokens();
+        });
+    }
 
     ngOnInit() {
         if (isPlatformBrowser(this.platformId)) {
@@ -337,5 +348,68 @@ export class AppConfigurator {
 
     onMenuModeChange(value: string): void {
         this.layoutService.layoutConfig.update((prev) => ({ ...prev, menuMode: value }));
+    }
+
+    /** Resolve a surface palette by name (defaults to slate = GE's base). */
+    private resolveSurface(name: string | undefined | null): SurfacePalette {
+        return this.surfaces.find((su) => su.name === (name ?? 'slate'))?.palette ?? this.surfaces.find((su) => su.name === 'slate')!.palette!;
+    }
+
+    private setVar(name: string, value: string | undefined): void {
+        if (value) {
+            document.documentElement.style.setProperty(name, value);
+        }
+    }
+
+    /**
+     * Mirror the configurator's Primary/Surface choice into GE's CSS custom
+     * properties (--accent / --surface / --text families) so the feature pages
+     * follow the selected theme. Theme-aware: maps light vs dark shades.
+     */
+    private syncGeTokens(): void {
+        if (!isPlatformBrowser(this.platformId)) {
+            return;
+        }
+        const cfg = this.layoutService.layoutConfig();
+        const dark = cfg.darkTheme;
+
+        // Primary -> --accent family
+        const primary = this.primaryColors().find((c) => c.name === cfg.primary);
+        const pp: SurfacePalette = primary?.palette ?? {};
+        if (cfg.primary === 'noir') {
+            const sp = this.resolveSurface(cfg.surface);
+            const accent = dark ? sp[100] : sp[900];
+            this.setVar('--accent', accent);
+            this.setVar('--accent-hover', dark ? sp[200] : sp[800]);
+            this.setVar('--accent-soft', accent ? `color-mix(in srgb, ${accent} ${dark ? '22%' : '12%'}, transparent)` : undefined);
+        } else if (pp[500]) {
+            this.setVar('--accent', dark ? (pp[400] ?? pp[500]) : pp[500]);
+            this.setVar('--accent-hover', dark ? (pp[300] ?? pp[400]) : (pp[600] ?? pp[500]));
+            this.setVar('--accent-soft', `color-mix(in srgb, ${pp[500]} ${dark ? '22%' : '12%'}, transparent)`);
+        }
+
+        // Surface -> --surface / --border / --text families (theme-aware)
+        const s = this.resolveSurface(cfg.surface);
+        if (dark) {
+            this.setVar('--surface', s[800]);
+            this.setVar('--surface-muted', s[900]);
+            this.setVar('--surface-sunken', s[700]);
+            this.setVar('--border', s[700]);
+            this.setVar('--border-strong', s[600]);
+            this.setVar('--text', s[100]);
+            this.setVar('--text-muted', s[300]);
+            this.setVar('--text-subtle', s[400]);
+            this.setVar('--text-faint', s[500]);
+        } else {
+            this.setVar('--surface', s[0]);
+            this.setVar('--surface-muted', s[50]);
+            this.setVar('--surface-sunken', s[100]);
+            this.setVar('--border', s[200]);
+            this.setVar('--border-strong', s[300]);
+            this.setVar('--text', s[900]);
+            this.setVar('--text-muted', s[600]);
+            this.setVar('--text-subtle', s[500]);
+            this.setVar('--text-faint', s[400]);
+        }
     }
 }

@@ -1,13 +1,22 @@
+/* Shell content frame.
+   - `6rem` top clears the FIXED topbar (4rem) plus breathing room.
+   - `2rem` side gutter is the SINGLE source of horizontal page padding
+     (feature pages only do `max-width + margin:0 auto`, NO own side padding);
+     reduced to `1.25rem` on small screens (see _responsive.scss).
+   - Background stays transparent so the `body` page-ground
+     (var(--surface-muted)) shows through in light + dark. */
 .layout-main-container {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     justify-content: space-between;
     padding: 6rem 2rem 0 2rem;
+    background: transparent;
     transition: margin-left var(--layout-section-transition-duration);
 }
 
 .layout-main {
     flex: 1 1 auto;
     padding-bottom: 2rem;
+    background: transparent;
 }

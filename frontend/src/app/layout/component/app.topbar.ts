@@ -5,11 +5,12 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '@core/services/auth.service';
+import { AvatarComponent } from '@shared/components/avatar/avatar.component';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, AvatarComponent],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
             <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -31,7 +32,7 @@ import { AuthService } from '@core/services/auth.service';
                 </button>
                 <div class="relative">
                     <button
-                        class="layout-topbar-action layout-topbar-action-highlight"
+                        class="layout-topbar-action"
                         pStyleClass="@next"
                         enterFromClass="hidden"
                         enterActiveClass="animate-scalein"
@@ -53,13 +54,16 @@ import { AuthService } from '@core/services/auth.service';
                 <div class="layout-topbar-menu-content">
                     @if (user(); as currentUser) {
                         <div class="topbar-user-chip">
-                            <span class="topbar-user-name">{{ currentUser.name }}</span>
-                            <span class="badge" [class.badge-blue]="currentUser.role === 'ADMIN'" [class.badge-gray]="currentUser.role !== 'ADMIN'">
-                                {{ currentUser.role }}
-                            </span>
+                            <app-avatar [name]="currentUser.name" size="sm" />
+                            <div class="topbar-user-meta">
+                                <span class="topbar-user-name">{{ currentUser.name }}</span>
+                                <span class="badge" [class.badge-blue]="currentUser.role === 'ADMIN'" [class.badge-gray]="currentUser.role !== 'ADMIN'">
+                                    {{ currentUser.role }}
+                                </span>
+                            </div>
                         </div>
                     }
-                    <button type="button" class="layout-topbar-action" (click)="logout()" title="Keluar">
+                    <button type="button" class="topbar-logout" (click)="logout()" title="Keluar">
                         <i class="pi pi-sign-out"></i>
                         <span>Keluar</span>
                     </button>
@@ -70,17 +74,66 @@ import { AuthService } from '@core/services/auth.service';
     styles: [
         `
             .topbar-user-chip {
-                display: flex;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.55rem;
+                padding: 3px 12px 3px 3px;
+                background: var(--surface-muted);
+                border: 1px solid var(--border);
+                border-radius: 999px;
+            }
+
+            .topbar-user-meta {
+                display: inline-flex;
                 align-items: center;
                 gap: 0.5rem;
-                padding: 0 0.5rem;
             }
 
             .topbar-user-name {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 font-weight: 600;
-                color: var(--text-color);
+                color: var(--text);
                 white-space: nowrap;
+            }
+
+            .topbar-logout {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.45rem;
+                height: 2.25rem;
+                padding: 0 0.9rem;
+                border-radius: 999px;
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--text-muted);
+                font-family: inherit;
+                font-size: 0.85rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.15s, color 0.15s, border-color 0.15s;
+            }
+
+            .topbar-logout:hover {
+                background: var(--danger-soft);
+                color: var(--danger);
+                border-color: transparent;
+            }
+
+            .topbar-logout i {
+                font-size: 0.95rem;
+            }
+
+            /* Mobile dropdown: stack full-width like the rest of the menu. */
+            @media (max-width: 991px) {
+                .topbar-user-chip {
+                    width: 100%;
+                }
+                .topbar-logout {
+                    width: 100%;
+                    justify-content: flex-start;
+                    height: auto;
+                    padding: 0.55rem 1rem;
+                }
             }
         `
     ]

@@ -19,7 +19,7 @@ import { LayoutService } from '../service/layout.service';
             </div>
             <app-footer></app-footer>
         </div>
-        <div class="layout-mask"></div>
+        <div class="layout-mask animate-fadein" (click)="onMaskClick()"></div>
     </div> `
 })
 export class AppLayout {
@@ -47,4 +47,9 @@ export class AppLayout {
             'layout-mobile-active': state.mobileMenuActive
         };
     });
+
+    /** Backdrop tap closes the mobile/overlay sidebar (Sakai behaviour). */
+    onMaskClick(): void {
+        this.layoutService.closeSidebar();
+    }
 }

@@ -49,18 +49,15 @@ import { TimelineItem, DateGroup, asExpense, asLoan, dayKey, fmtDayLabel } from 
       (close)="selectedItem.set(null)" />
   `,
   styles: [`
+    /* Page gutter (6rem top / 2rem sides) comes from the Sakai layout container;
+       the page only constrains width and centers. */
     .history-wrap {
-      padding: 16px;
       max-width: 780px;
       margin: 0 auto;
-      min-height: 100vh;
     }
     .page-header { margin-bottom: 20px; }
     .page-title  { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 0 0 2px; letter-spacing: -0.02em; }
     .page-sub    { font-size: 0.78rem; color: var(--text-subtle); margin: 0; }
-    @media (min-width: 560px) {
-      .history-wrap { padding: 24px; }
-    }
   `]
 })
 export class HistoryComponent {

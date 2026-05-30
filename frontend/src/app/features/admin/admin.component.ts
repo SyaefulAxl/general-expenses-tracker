@@ -63,8 +63,9 @@ import { AdminUserCardComponent } from './admin-user-card.component';
     </div>
   `,
   styles: [`
+    /* Page gutter (6rem top / 2rem sides) comes from the Sakai layout container;
+       the page only constrains width and centers. */
     .admin-wrap {
-      padding: 24px;
       max-width: 1200px;
       margin: 0 auto;
     }
@@ -111,8 +112,13 @@ import { AdminUserCardComponent } from './admin-user-card.component';
 
     .user-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 16px;
+    }
+    /* On phones a 280px min-track can overflow after the layout gutter;
+       collapse to a single comfortable column. */
+    @media (max-width: 640px) {
+      .user-grid { grid-template-columns: 1fr; }
     }
 
     .empty-state {

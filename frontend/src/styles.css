@@ -141,15 +141,36 @@ body, .app-shell, .topbar, .card, .table-card, .filters-bar, .summary-chip {
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; }
 
+html {
+  min-height: 100%;
+}
+
+/* Global PAGE BACKGROUND. Sakai's _core.scss body/surface-ground rule was
+   intentionally dropped, so the body bg is owned here. It uses the GE
+   page-ground token var(--surface-muted) which already flips with `.dark`
+   (#f8fafc light / #0f172a dark) — this is the surface the feature pages
+   were designed to sit on, and it fixes dark mode showing white behind the
+   shell. The Sakai layout wrappers (.layout-wrapper/.layout-main-container/
+   .layout-main) stay transparent so this bg shows through everywhere. */
 body {
   font-family: var(--font-sans);
   background: var(--surface-muted);
   color: var(--text);
+  min-height: 100vh;
   margin: 0;
   padding: 0;
+  overflow-x: hidden; /* belt-and-braces against any shell horizontal overflow on mobile */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* Keep the Sakai shell frame transparent so the body page-ground shows
+   through in BOTH themes (defensive — also set in _main.scss). */
+.layout-wrapper,
+.layout-main-container,
+.layout-main {
+  background: transparent;
 }
 
 /* ── Money / numeric values ─────────────────────────────── */
@@ -966,6 +987,45 @@ textarea.p-inputtext::placeholder { color: var(--text-faint) !important; }
 .truncate        { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fw-600          { font-weight: 600; }
 .fw-700          { font-weight: 700; }
-.text-success    { color: #059669; }
-.text-danger     { color: #dc2626; }
+.text-success    { color: var(--success); }
+.text-danger     { color: var(--danger); }
 .table-responsive{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ============================================================
+   Sakai configurator panel + selectbutton — robust, token-based.
+   The overlay/selectbutton are skinned with GE tokens so they render
+   cleanly in light AND dark, instead of relying on PrimeUI Tailwind
+   utilities (bg-surface-0 / border-surface / rounded-border) that may
+   not resolve reliably in this cssLayer setup.
+   ============================================================ */
+app-configurator {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-lg) !important;
+  z-index: 1100;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+app-configurator .text-muted-color { color: var(--text-muted) !important; }
+
+/* p-selectbutton (Presets / Menu Mode) → clean segmented control */
+.p-selectbutton {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.p-selectbutton .p-togglebutton {
+  border: none !important; background: transparent !important;
+  border-radius: var(--radius-sm) !important; box-shadow: none !important;
+}
+.p-selectbutton .p-togglebutton::before { display: none !important; }
+.p-selectbutton .p-togglebutton .p-togglebutton-content {
+  padding: 6px 12px !important; background: transparent !important;
+  color: var(--text-muted); font-weight: 600; border-radius: var(--radius-sm);
+}
+.p-selectbutton .p-togglebutton:hover:not(.p-togglebutton-checked) .p-togglebutton-content { color: var(--text); }
+.p-selectbutton .p-togglebutton.p-togglebutton-checked .p-togglebutton-content {
+  background: var(--surface) !important; color: var(--accent); box-shadow: var(--shadow-sm);
+}

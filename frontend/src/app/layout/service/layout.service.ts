@@ -40,8 +40,8 @@ function readPersistedDark(): boolean {
 export class LayoutService {
     layoutConfig = signal<LayoutConfig>({
         preset: 'Aura',
-        primary: 'emerald',
-        surface: null,
+        primary: 'blue',
+        surface: 'slate',
         darkTheme: readPersistedDark(),
         menuMode: 'static'
     });
@@ -55,7 +55,7 @@ export class LayoutService {
         activePath: null
     });
 
-    theme = computed(() => (this.layoutConfig().darkTheme ? 'light' : 'dark'));
+    theme = computed(() => (this.layoutConfig().darkTheme ? 'dark' : 'light'));
 
     isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().mobileMenuActive);
 
@@ -138,6 +138,16 @@ export class LayoutService {
         } else {
             this.layoutState.update((prev) => ({ ...prev, mobileMenuActive: !this.layoutState().mobileMenuActive }));
         }
+    }
+
+    /** Close the overlay/mobile sidebar (used by the .layout-mask backdrop). */
+    closeSidebar() {
+        this.layoutState.update((prev) => ({
+            ...prev,
+            overlayMenuActive: false,
+            mobileMenuActive: false,
+            menuHoverActive: false
+        }));
     }
 
     showConfigSidebar() {

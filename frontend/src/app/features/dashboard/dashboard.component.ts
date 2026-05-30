@@ -274,7 +274,9 @@ interface CategoryStat {
     </div>
   `,
   styles: [`
-    .dash { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    /* Page gutter (6rem top / 2rem sides) comes from the Sakai layout container;
+       the page only centers its content. */
+    .dash { max-width: 1400px; margin: 0 auto; }
 
     /* ── Header ──────────────────────────────────────────────── */
     .dash-header {
@@ -426,7 +428,10 @@ interface CategoryStat {
       font-size: 0.65rem; font-weight: 700;
     }
     .dash-card-body { padding: 18px; }
-    .dash-card-body.flush { padding: 0; }
+    /* Flush body holds the recent-expenses table; let it scroll horizontally
+       on narrow screens instead of forcing the card to overflow. */
+    .dash-card-body.flush { padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .mini-table { min-width: 360px; }
 
     /* ── Category rows ───────────────────────────────────────── */
     .cat-row {
@@ -511,6 +516,22 @@ interface CategoryStat {
     .loan-half-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; }
     .loan-half-val   { font-size: 1.1rem; font-weight: 700; }
     .loan-half-fx    { font-size: 0.7rem; color: var(--text-subtle); }
+
+    /* ── Mobile polish ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      /* Header stacks; the rate bar becomes full-width and wraps cleanly. */
+      .dash-header { margin-bottom: 20px; }
+      .dash-header-right { width: 100%; }
+      .rate-bar { width: 100%; }
+      /* Net strip stacks; right column aligns left for readability. */
+      .net-strip { flex-direction: column; align-items: stretch; }
+      .net-strip-right { text-align: left; }
+      /* Keep the loan summary readable; halves stack only on very small screens. */
+      .dash-card-body { padding: 14px; }
+    }
+    @media (max-width: 420px) {
+      .loan-halves { grid-template-columns: 1fr; }
+    }
   `]
 })
 export class DashboardComponent implements OnInit {

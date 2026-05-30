@@ -206,7 +206,7 @@ const PERSON_TONE: Record<string, Tone> = {
       [modal]="true"
       [draggable]="false"
       [resizable]="false"
-      [style]="{ width: '440px' }"
+      [style]="{ width: '440px', maxWidth: '94vw' }"
       appendTo="body">
 
       <div class="dlg-body">
@@ -268,7 +268,9 @@ const PERSON_TONE: Record<string, Tone> = {
     </p-dialog>
   `,
   styles: [`
-    .loans-wrap { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    /* Page gutter (6rem top / 2rem sides) comes from the Sakai layout container;
+       the page only centers its content. */
+    .loans-wrap { max-width: 1400px; margin: 0 auto; }
     .loans-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
@@ -423,6 +425,19 @@ const PERSON_TONE: Record<string, Tone> = {
     }
     .dlg-save-btn:hover:not(:disabled) { background: var(--accent-hover); }
     .dlg-save-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    /* ── Mobile polish ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .loans-header { flex-direction: column; align-items: stretch; }
+      .btn-repay { justify-content: center; }
+      /* Cards must not demand 300px on a ~360px phone (would overflow after gutters). */
+      .loan-cards { grid-template-columns: 1fr; }
+      .loan-card { padding: 16px; }
+      .loan-amount-thb { font-size: 1.5rem; }
+      /* Tabs scroll instead of overflowing. */
+      .tab-strip { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .tab-btn { white-space: nowrap; }
+    }
   `]
 })
 export class LoansComponent implements OnInit {

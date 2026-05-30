@@ -68,7 +68,10 @@
             cursor: pointer;
             padding: 0.75rem 1rem;
             border-radius: var(--content-border-radius);
-            transition: box-shadow var(--element-transition-duration);
+            transition:
+                box-shadow var(--element-transition-duration),
+                background-color var(--element-transition-duration),
+                color var(--element-transition-duration);
 
             .layout-menuitem-icon {
                 margin-right: 0.5rem;
@@ -80,13 +83,26 @@
                 transition: transform var(--element-transition-duration);
             }
 
+            &:hover {
+                background-color: var(--surface-hover);
+            }
+
+            /* Active route: clear primary-coloured highlight (text, icon, and
+               a soft primary background pill) so the current page is obvious
+               in both light and dark. color-mix tints with whatever primary
+               the configurator picks. */
             &.active-route {
                 font-weight: 700;
                 color: var(--primary-color);
+                background-color: color-mix(in srgb, var(--primary-color) 12%, transparent);
             }
 
-            &:hover {
-                background-color: var(--surface-hover);
+            &.active-route:hover {
+                background-color: color-mix(in srgb, var(--primary-color) 16%, transparent);
+            }
+
+            &.active-route .layout-menuitem-icon {
+                color: var(--primary-color);
             }
 
             &:focus {

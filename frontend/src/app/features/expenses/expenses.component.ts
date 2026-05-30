@@ -88,7 +88,9 @@ const PAGE_SIZE = 15;
       (del)="confirmDelete($event)" />
   `,
   styles: [`
-    .exp-wrap { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    /* The Sakai layout container supplies the page gutter (6rem top / 2rem sides),
+       so the page only centers its content — no redundant outer padding. */
+    .exp-wrap { max-width: 1400px; margin: 0 auto; }
 
     /* ── Header band ─────────────────────────────────────────── */
     .exp-header {
@@ -125,9 +127,11 @@ const PAGE_SIZE = 15;
     .btn-add:hover { background: var(--accent-hover); }
 
     @media (max-width: 640px) {
-      .exp-wrap { padding: 16px; }
-      .exp-header { padding: 16px; }
+      .exp-header { padding: 16px; flex-direction: column; align-items: stretch; }
+      .exp-head-text { align-items: flex-start; }
       .header-actions { width: 100%; }
+      .header-actions .btn-ghost,
+      .header-actions .btn-add { flex: 1; justify-content: center; }
       .btn-add { margin-left: auto; }
     }
   `]
