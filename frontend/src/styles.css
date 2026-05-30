@@ -14,10 +14,22 @@
 @import "tailwindcss";
 @import "tailwindcss-primeui";
 
+/* Tailwind v4 source scanning. Auto-detection was missing the component
+   sources, so NO utility classes were generated — which broke the Sakai shell
+   components that rely on utilities (the configurator's hidden/absolute/flex/
+   w-72/dark:* etc., topbar `hidden lg:block`). Scan the app sources explicitly. */
+@source "./app";
+
 /* Tailwind v4 dark variant — keyed off `.dark` on <html> (the shared
    dark-mode bridge), so Sakai shell utilities like `dark:bg-surface-900`
    used by the configurator track the same toggle as PrimeNG + GE tokens. */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* This project's Tailwind build emits preflight but NO utility classes, so the
+   one Sakai-shell utility we still rely on — `hidden` (mobile topbar menu toggle
+   via pStyleClass) — is defined explicitly. Desktop visibility comes from the
+   _topbar.scss `@media (min-width:992px)` rule (higher specificity wins). */
+.hidden { display: none; }
 
 /* ============================================================
    CSS Custom Properties — 19 final tokens, no legacy aliases
