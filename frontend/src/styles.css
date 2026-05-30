@@ -18,7 +18,7 @@
    sources, so NO utility classes were generated — which broke the Sakai shell
    components that rely on utilities (the configurator's hidden/absolute/flex/
    w-72/dark:* etc., topbar `hidden lg:block`). Scan the app sources explicitly. */
-@source "./app";
+@source "/opt/general-expenses-tracker/frontend/src/**/*.{html,ts}";
 
 /* Tailwind v4 dark variant — keyed off `.dark` on <html> (the shared
    dark-mode bridge), so Sakai shell utilities like `dark:bg-surface-900`
@@ -1010,7 +1010,16 @@ textarea.p-inputtext::placeholder { color: var(--text-faint) !important; }
    utilities (bg-surface-0 / border-surface / rounded-border) that may
    not resolve reliably in this cssLayer setup.
    ============================================================ */
+/* Host = the floating panel. Its Sakai host classes (absolute/top-13/w-72/p-4/
+   bg-surface-0/…) are Tailwind utilities this build does NOT generate, so the
+   panel is positioned + skinned explicitly here. */
 app-configurator {
+  position: absolute;
+  top: 3.25rem;
+  right: 0;
+  width: 18rem;
+  display: block;
+  padding: 1rem;
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--radius) !important;
@@ -1019,7 +1028,35 @@ app-configurator {
   max-height: 80vh;
   overflow-y: auto;
 }
+app-configurator.hidden { display: none !important; }
+
+/* The configurator's internals also use Tailwind utility classes (not
+   generated in this build), so define the ones it relies on — scoped to
+   app-configurator so nothing else is affected. */
+app-configurator .flex { display: flex; }
+app-configurator .flex-col { flex-direction: column; }
+app-configurator .flex-wrap { flex-wrap: wrap; }
+app-configurator .items-center { align-items: center; }
+app-configurator .justify-center { justify-content: center; }
+app-configurator .justify-start { justify-content: flex-start; }
+app-configurator .shrink-0 { flex-shrink: 0; }
+app-configurator .gap-2 { gap: 0.5rem; }
+app-configurator .gap-4 { gap: 1rem; }
+app-configurator .pt-2 { padding-top: 0.5rem; }
+app-configurator .p-0 { padding: 0; }
+app-configurator .w-5 { width: 1.25rem; }
+app-configurator .h-5 { height: 1.25rem; }
+app-configurator .rounded-full { border-radius: 9999px; }
+app-configurator .cursor-pointer { cursor: pointer; }
+app-configurator .outline-offset-1 { outline-offset: 1px; }
+app-configurator .shadow { box-shadow: 0 1px 2px rgba(0,0,0,0.18); }
+app-configurator .outline { outline: 2px solid transparent; }
+app-configurator .outline-primary { outline-color: var(--primary-color) !important; }
+app-configurator .text-sm { font-size: 0.8rem; }
+app-configurator .font-semibold { font-weight: 600; }
 app-configurator .text-muted-color { color: var(--text-muted) !important; }
+/* Swatch buttons render as clean circles regardless of UA button chrome. */
+app-configurator button[title] { border: none; padding: 0; line-height: 0; }
 
 /* p-selectbutton (Presets / Menu Mode) → clean segmented control */
 .p-selectbutton {
